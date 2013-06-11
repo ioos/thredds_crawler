@@ -92,4 +92,5 @@ class LeafDataset(object):
                 url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix")
                 self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
 
-
+    def __repr__(self):
+        return "<LeafDataset id: %s, name: %s, services: %s>" % (self.id, self.name, str([s.get("service") for s in self.services]))
