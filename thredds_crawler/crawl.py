@@ -60,7 +60,7 @@ class Crawl(object):
             # Subset by the Selects defined
             if self.select is not None:
                 gid = leaf.get('ID')
-                if any([x.match(gid) for x in self.select]):
+                if gid is not None and any([x.match(gid) for x in self.select]):
                     yield "%s?dataset=%s" % (url, gid)
             else:
                 yield "%s?dataset=%s" % (url, leaf.get('ID'))        
