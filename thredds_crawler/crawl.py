@@ -75,6 +75,7 @@ class LeafDataset(object):
         self.id = dataset.get("ID")
         self.name = dataset.get("name")
         self.metadata = dataset.find("{%s}metadata" % INV_NS)
+        self.catalog_url = dataset_url.split("?")[0]
         service_tag = dataset.find("{%s}serviceName" % INV_NS)
         if service_tag is None:
             service_tag = self.metadata.find("{%s}serviceName" % INV_NS)
