@@ -10,11 +10,17 @@ XLINK_NS = "http://www.w3.org/1999/xlink"
 
 class Crawl(object):
 
-    def __init__(self, catalog_url, select=None, skip=None):
+    def __init__(self, catalog_url, select=None, skip=None, debug=None):
         """
         select: a list of dataset IDs. Python regex supported.
         skip:   list of dataset names and/or a catalogRef titles.  Python regex supported.
         """
+
+        if debug is True:
+            self.debug = True
+        else:
+            self.debug = False
+
         # Only process these dataset IDs
         if select is not None:
             select = map(lambda x: re.compile(x), select)
@@ -29,6 +35,9 @@ class Crawl(object):
         self.datasets = [LeafDataset(url) for url in self._run(url=catalog_url)]
 
     def _run(self, url):
+        if self.debug:
+            print "Crawling: %s" % url
+
         u = urlparse.urlsplit(url)
         name, ext = os.path.splitext(u.path)
         if ext == ".html":
@@ -48,6 +57,9 @@ class Crawl(object):
             if not any([x.match(title) for x in self.skip]):
                 for ds in self._run(url=construct_url(url, ref.get("{%s}href" % XLINK_NS))):
                     yield ds
+            else:
+                if self.debug:
+                    print "Skipping catalogRef based on 'skips'.  Title: %s" % title
 
         # Get the leaf datasets
         ds = []
@@ -55,15 +67,24 @@ class Crawl(object):
             # Subset by the skips
             name = leaf.get("name")
             if any([x.match(name) for x in self.skip]):
+                if self.debug:
+                    print "Skipping dataset based on 'skips'.  Name: %s" % name
                 break
 
             # Subset by the Selects defined
+            gid = leaf.get('ID')
             if self.select is not None:
-                gid = leaf.get('ID')
                 if gid is not None and any([x.match(gid) for x in self.select]):
+                    if self.debug:
+                        print "Processing %s" % gid
                     yield "%s?dataset=%s" % (url, gid)
+                else:
+                    if self.debug:
+                        print "Ignoring dataset based on 'selects'.  ID: %s" % gid
             else:
-                yield "%s?dataset=%s" % (url, leaf.get('ID'))        
+                if self.debug:
+                    print "Processing %s" % gid
+                yield "%s?dataset=%s" % (url, gid)
 
 class LeafDataset(object):
     def __init__(self, dataset_url):
