@@ -82,6 +82,7 @@ class LeafDataset(object):
         service_name = service_tag.text
 
         self.services = []
+
         for service in tree.findall(".//{%s}service[@name='%s']" % (INV_NS, service_name)):
             if service.get("serviceType") == "Compound":
                 for s in service.findall("{%s}service" % INV_NS):
@@ -90,7 +91,7 @@ class LeafDataset(object):
                         url += s.get("suffix")
                     self.services.append( {'name' : s.get('name'), 'service' : s.get('serviceType'), 'url' : url } )
             else:
-                url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix")
+                url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix","")
                 self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
 
     def __repr__(self):
