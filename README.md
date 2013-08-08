@@ -3,6 +3,17 @@ thredds_crawler
 
 A simple crawler/parser for THREDDS catalogs
 
+Installation
+------------
+
+thredds_crawler is available on pypi and is easiest installed using `pip`.
+
+```bash
+pip install thredds_crawler
+```
+`lxml` and `requests` will be installed automatically
+
+
 Usage
 ------
 
@@ -31,21 +42,70 @@ You can select datasets based on their THREDDS ID using the 'select' parameter. 
 ### Skip
 
 You can skip datasets based on their `name` and catalogRefs based on their `xlink:title`.  By default, the crawler
-uses four regular expressions to skip lists of thousands upon thousands of individual files that are part of aggregations or FMRCs:
+uses some common regular expressions to skip lists of thousands upon thousands of individual files that are part of aggregations or FMRCs:
 
-*  .\*files/
-*  .\*Individual Files.\*
-*  .\*File_Access.\*
-*  .\*Forecast Model Run.\*
+*  `.*files.*`
+*  `.*Individual Files.*`
+*  `.*File_Access.*`
+*  `.*Forecast Model Run.*`
+*  `.*Constant Forecast Offset.*`
+*  `.*Constant Forecast Date.*`
 
 By setting the `skip` parameter to anything other than a superset of the default you run the risk of having some angry system admins after you.
 
+You can access the default `skip` list through the Crawl.SKIPS class variable
 ```python
-# Skipping everything!
-from thredds_crawler.crawl import Crawl
-c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", skip=[".*"])
-assert len(c.datasets) == 0
+> from thredds_crawler.crawl import Crawl
+> print Crawl.SKIPS
+[
+  '.*files.*',
+  '.*Individual Files.*',
+  '.*File_Access.*',
+  '.*Forecast Model Run.*',
+  '.*Constant Forecast Offset.*',
+  '.*Constant Forecast Date.*'
+]
 ```
+
+If you need to remove or add a new `skip`, it is **strongly** encouraged you use the `SKIPS` class variable as a starting point!
+
+```python
+> from thredds_crawler.crawl import Crawl
+> skips = Crawl.SKIPS + [".*-Day-Aggregation"]
+> c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"], skip=skips)
+> print c.datasets
+[
+  <LeafDataset id: MODIS-Agg, name: MODIS-Complete Aggregation, services: ['OPENDAP', 'ISO']>,
+  <LeafDataset id: MODIS-2009-Agg, name: MODIS-2009 Aggregation, services: ['OPENDAP', 'ISO']>,
+  <LeafDataset id: MODIS-2010-Agg, name: MODIS-2010 Aggregation, services: ['OPENDAP', 'ISO']>,
+  <LeafDataset id: MODIS-2011-Agg, name: MODIS-2011 Aggregation, services: ['OPENDAP', 'ISO']>,
+  <LeafDataset id: MODIS-2012-Agg, name: MODIS-2012 Aggregation, services: ['OPENDAP', 'ISO']>,
+  <LeafDataset id: MODIS-2013-Agg, name: MODIS-2013 Aggregation, services: ['OPENDAP', 'ISO']>,
+]
+```
+
+### Debugging
+
+You can pass in a `debug=True` parameter to Crawl to print to the console what is actually happening.
+
+```python
+> from thredds_crawler.crawl import Crawl
+> skips = Crawl.SKIPS + [".*-Day-Aggregation"]
+>>> c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"], skip=skips, debug=True)
+Crawling: http://tds.maracoos.org/thredds/MODIS.xml
+Skipping catalogRef based on 'skips'.  Title: MODIS Individual Files
+Skipping catalogRef based on 'skips'.  Title: 1-Day Individual Files
+Skipping catalogRef based on 'skips'.  Title: 3-Day Individual Files
+Skipping catalogRef based on 'skips'.  Title: 8-Day Individual Files
+Processing MODIS-Agg
+Processing MODIS-2009-Agg
+Processing MODIS-2010-Agg
+Processing MODIS-2011-Agg
+Processing MODIS-2012-Agg
+Processing MODIS-2013-Agg
+Skipping dataset based on 'skips'.  Name: 1-Day-Aggregation
+```
+
 
 ## Dataset
 
@@ -112,3 +172,4 @@ your own discretion.
 ## Known Issues
 
 *  Will not handle catalogs that reference themselves
+*  Single threaded
