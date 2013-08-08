@@ -10,6 +10,8 @@ XLINK_NS = "http://www.w3.org/1999/xlink"
 
 class Crawl(object):
 
+    SKIPS = [".*files.*", ".*Individual Files.*", ".*File_Access.*", ".*Forecast Model Run.*", ".*Constant Forecast Offset.*", ".*Constant Forecast Date.*"]
+
     def __init__(self, catalog_url, select=None, skip=None, debug=None):
         """
         select: a list of dataset IDs. Python regex supported.
@@ -29,7 +31,7 @@ class Crawl(object):
         # Skip these dataset links, such as a list of files
         # ie. "files/"
         if skip is None:
-            skip = [".*files/", ".*Individual Files.*", ".*File_Access.*", ".*Forecast Model Run.*"]
+            skip = Crawl.SKIPS
         self.skip = map(lambda x: re.compile(x), skip)
 
         self.datasets = [LeafDataset(url) for url in self._run(url=catalog_url)]
