@@ -171,5 +171,4 @@ your own discretion.
 
 ## Known Issues
 
-*  Will not handle catalogs that reference themselves
 *  Single threaded
