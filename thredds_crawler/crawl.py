@@ -8,6 +8,7 @@ from thredds_crawler.utils import construct_url
 INV_NS = "http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
 XLINK_NS = "http://www.w3.org/1999/xlink"
 
+
 class Crawl(object):
 
     SKIPS = [".*files.*", ".*Individual Files.*", ".*File_Access.*", ".*Forecast Model Run.*", ".*Constant Forecast Offset.*", ".*Constant Forecast Date.*"]
@@ -34,22 +35,31 @@ class Crawl(object):
             skip = Crawl.SKIPS
         self.skip = map(lambda x: re.compile(x), skip)
 
-        self.datasets = [LeafDataset(url) for url in self._run(url=catalog_url)]
+        self.visited  = []
+        self.datasets = [LeafDataset(url) for url in self._run(url=catalog_url) if url is not None]
 
     def _run(self, url):
+        if url in self.visited:
+            if self.debug:
+                print "Skipping %s (already crawled)" % url
+            return
+        self.visited.append(url)
+
         if self.debug:
             print "Crawling: %s" % url
 
         u = urlparse.urlsplit(url)
         name, ext = os.path.splitext(u.path)
         if ext == ".html":
-            u = urlparse.urlsplit(url.replace(".html",".xml"))
+            u = urlparse.urlsplit(url.replace(".html", ".xml"))
         url = u.geturl()
         # Get an etree object
         try:
             r = requests.get(url)
             tree = etree.XML(str(r.text))
         except BaseException:
+            if self.debug:
+                print "Skipping %s (error parsing getting XML)" % url
             return
 
         # Crawl the catalogRefs:
@@ -62,6 +72,7 @@ class Crawl(object):
             else:
                 if self.debug:
                     print "Skipping catalogRef based on 'skips'.  Title: %s" % title
+                continue
 
         # Get the leaf datasets
         ds = []
@@ -71,7 +82,7 @@ class Crawl(object):
             if any([x.match(name) for x in self.skip]):
                 if self.debug:
                     print "Skipping dataset based on 'skips'.  Name: %s" % name
-                break
+                continue
 
             # Subset by the Selects defined
             gid = leaf.get('ID')
@@ -83,10 +94,12 @@ class Crawl(object):
                 else:
                     if self.debug:
                         print "Ignoring dataset based on 'selects'.  ID: %s" % gid
+                    continue
             else:
                 if self.debug:
                     print "Processing %s" % gid
                 yield "%s?dataset=%s" % (url, gid)
+
 
 class LeafDataset(object):
     def __init__(self, dataset_url):
@@ -114,7 +127,7 @@ class LeafDataset(object):
                         url += s.get("suffix")
                     self.services.append( {'name' : s.get('name'), 'service' : s.get('serviceType'), 'url' : url } )
             else:
-                url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix","")
+                url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix", "")
                 self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
 
     def __repr__(self):
