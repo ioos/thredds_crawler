@@ -28,3 +28,10 @@ class CrawlerTest(unittest.TestCase):
         # skip everything
         c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", skip=[".*"])
         assert len(c.datasets) == 0
+
+    def test_iso_links(self):
+        # skip everything
+        c = Crawl("http://thredds.axiomalaska.com/thredds/catalogs/global.html", debug=True)
+        isos = [s.get("url") for d in c.datasets for s in d.services if s.get("service").lower() == "iso"]
+        assert "?dataset=" in isos[0]
+        assert "&catalog=" in isos[0]
