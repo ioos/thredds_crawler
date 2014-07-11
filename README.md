@@ -169,6 +169,57 @@ Aggregations are simple means of available data over the specified time frame. U
 your own discretion.
 ```
 
+
+## Use Case
+
+Below is a python script that can be used to harvest THEDDS catalogs and save the ISO metadata files
+to a local directory
+
+```python
+import os
+import urllib
+from thredds_crawler.crawl import Crawl
+
+import logging
+import logging.handlers
+logger = logging.getLogger('thredds_crawler')
+fh = logging.handlers.RotatingFileHandler('/var/log/iso_harvest/iso_harvest.log', maxBytes=1024*1024*10, backupCount=5)
+fh.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+logger.addHandler(fh)
+logger.addHandler(ch)
+logger.setLevel(logging.DEBUG)
+
+SAVE_DIR="/srv/http/iso"
+
+THREDDS_SERVERS = {
+    "aoos":      "http://thredds.axiomalaska.com/thredds/catalogs/aoos.html",
+    "cencoos":   "http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html",
+    "maracoos" : "http://tds.maracoos.org/thredds/catalog.html",
+    "glos":      "http://tds.glos.us/thredds/catalog.html"
+}
+
+for subfolder, thredds_url in THREDDS_SERVERS.items():
+  logger.info("Crawling %s (%s)" % (subfolder, thredds_url))
+  crawler = Crawl(thredds_url, debug=True)
+  isos = [(d.id, s.get("url")) for d in catalog.datasets for s in d.services if s.get("service").lower() == "iso"]
+  filefolder = os.path.join(SAVE_DIR, subfolder)
+  if not os.path.exists(filefolder)
+    os.makedirs(filefolder)
+  for iso in isos:
+    try:
+      filename = iso[0].replace("/", "_") + ".iso.xml"
+      filepath = os.path.join(filefolder, filename)
+      logger.info("Downloading/Saving %s" % filepath)
+      urllib.urlretrieve(iso[1], filepath)
+    except BaseException:
+      logger.exception("Error!")
+```
+
 ## Known Issues
 
 *  Single threaded

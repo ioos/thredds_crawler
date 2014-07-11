@@ -37,7 +37,8 @@ class Crawl(object):
         self.skip = map(lambda x: re.compile(x), skip)
 
         self.visited  = []
-        self.datasets = [LeafDataset(url) for url in self._run(url=catalog_url) if url is not None]
+        datasets = [LeafDataset(url) for url in self._run(url=catalog_url) if url is not None]
+        self.datasets = filter(lambda x: x.id is not None, datasets)
 
     def _run(self, url):
         if url in self.visited:
@@ -104,38 +105,46 @@ class Crawl(object):
 
 class LeafDataset(object):
     def __init__(self, dataset_url):
+
+        self.services    = []
+        self.id          = None
+        self.name        = None
+        self.metadata    = None
+        self.catalog_url = None
+
         # Get an etree object
         r = requests.get(dataset_url)
-        tree = etree.XML(str(r.text))
+        try:
+            tree = etree.XML(str(r.text))
+        except etree.XMLSyntaxError:
+            print "Error procesing %s, invalid XML" % dataset_url
+        else:
+            dataset = tree.find("{%s}dataset" % INV_NS)
+            self.id = dataset.get("ID")
+            self.name = dataset.get("name")
+            self.metadata = dataset.find("{%s}metadata" % INV_NS)
+            self.catalog_url = dataset_url.split("?")[0]
+            service_tag = dataset.find("{%s}serviceName" % INV_NS)
+            if service_tag is None:
+                service_tag = self.metadata.find("{%s}serviceName" % INV_NS)
+            service_name = service_tag.text
 
-        dataset = tree.find("{%s}dataset" % INV_NS)
-        self.id = dataset.get("ID")
-        self.name = dataset.get("name")
-        self.metadata = dataset.find("{%s}metadata" % INV_NS)
-        self.catalog_url = dataset_url.split("?")[0]
-        service_tag = dataset.find("{%s}serviceName" % INV_NS)
-        if service_tag is None:
-            service_tag = self.metadata.find("{%s}serviceName" % INV_NS)
-        service_name = service_tag.text
-
-        self.services = []
-
-        for service in tree.findall(".//{%s}service[@name='%s']" % (INV_NS, service_name)):
-            if service.get("serviceType") == "Compound":
-                for s in service.findall("{%s}service" % INV_NS):
-                    url = construct_url(dataset_url, s.get('base')) + dataset.get("urlPath")
-                    if s.get("suffix") is not None:
-                        url += s.get("suffix")
+            for service in tree.findall(".//{%s}service[@name='%s']" % (INV_NS, service_name)):
+                if service.get("serviceType") == "Compound":
+                    for s in service.findall("{%s}service" % INV_NS):
+                        url = construct_url(dataset_url, s.get('base')) + dataset.get("urlPath")
+                        if s.get("suffix") is not None:
+                            url += s.get("suffix")
+                        # ISO like services need additional parameters
+                        if s.get('name') in ["iso", "ncml", "uddc"]:
+                            url += "?dataset=%s&catalog=%s" % (self.id, urllib.quote_plus(self.catalog_url))
+                        self.services.append( {'name' : s.get('name'), 'service' : s.get('serviceType'), 'url' : url } )
+                else:
+                    url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix", "")
                     # ISO like services need additional parameters
                     if s.get('name') in ["iso", "ncml", "uddc"]:
-                        url += "?dataset=%s&catalog=%s" % (self.id, urllib.quote_plus(self.catalog_url))
-                    self.services.append( {'name' : s.get('name'), 'service' : s.get('serviceType'), 'url' : url } )
-            else:
-                url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix", "")
-                # ISO like services need additional parameters
-                if s.get('name') in ["iso", "ncml", "uddc"]:
-                        url += "?dataset=%s&catalog=%s" % (self.id, urllib.quote_plus(self.catalog_url))
-                self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
+                            url += "?dataset=%s&catalog=%s" % (self.id, urllib.quote_plus(self.catalog_url))
+                    self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
 
     def __repr__(self):
         return "<LeafDataset id: %s, name: %s, services: %s>" % (self.id, self.name, str([s.get("service") for s in self.services]))
