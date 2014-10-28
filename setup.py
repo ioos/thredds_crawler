@@ -36,7 +36,7 @@ setup(
     tests_require       = ['pytest'],
     cmdclass            = {'test': PyTest},
     classifiers         = [
-            'Development Status :: 3 - Alpha',
+            'Development Status :: 4 - Beta',
             'Intended Audience :: Developers',
             'Intended Audience :: Science/Research',
             'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
