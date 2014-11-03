@@ -3,11 +3,24 @@ import urllib
 import urlparse
 import requests
 import os
+import sys
 import re
 from thredds_crawler.utils import construct_url
 
 INV_NS = "http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
 XLINK_NS = "http://www.w3.org/1999/xlink"
+
+import logging
+try:
+    # Python >= 2.7
+    from logging import NullHandler
+except ImportError:
+    # Python < 2.7
+    class NullHandler(logging.Handler):
+        def emit(self, record):
+            pass
+logger = logging.getLogger("thredds_crawler")
+logger.addHandler(NullHandler())
 
 
 class Crawl(object):
@@ -21,9 +34,12 @@ class Crawl(object):
         """
 
         if debug is True:
-            self.debug = True
-        else:
-            self.debug = False
+            logger.setLevel(logging.DEBUG)
+            ch = logging.StreamHandler(sys.stdout)
+            ch.setLevel(logging.DEBUG)
+            formatter = logging.Formatter('%(asctime)s - [%(levelname)s] %(message)s')
+            ch.setFormatter(formatter)
+            logger.addHandler(ch)
 
         # Only process these dataset IDs
         if select is not None:
@@ -42,13 +58,11 @@ class Crawl(object):
 
     def _run(self, url):
         if url in self.visited:
-            if self.debug:
-                print "Skipping %s (already crawled)" % url
+            logger.debug("Skipping %s (already crawled)" % url)
             return
         self.visited.append(url)
 
-        if self.debug:
-            print "Crawling: %s" % url
+        logger.info("Crawling: %s" % url)
 
         u = urlparse.urlsplit(url)
         name, ext = os.path.splitext(u.path)
@@ -60,8 +74,7 @@ class Crawl(object):
             r = requests.get(url)
             tree = etree.XML(str(r.text))
         except BaseException:
-            if self.debug:
-                print "Skipping %s (error parsing getting XML)" % url
+            logger.error("Skipping %s (error parsing getting XML)" % url)
             return
 
         # Crawl the catalogRefs:
@@ -72,8 +85,7 @@ class Crawl(object):
                 for ds in self._run(url=construct_url(url, ref.get("{%s}href" % XLINK_NS))):
                     yield ds
             else:
-                if self.debug:
-                    print "Skipping catalogRef based on 'skips'.  Title: %s" % title
+                logger.info("Skipping catalogRef based on 'skips'.  Title: %s" % title)
                 continue
 
         # Get the leaf datasets
@@ -82,24 +94,20 @@ class Crawl(object):
             # Subset by the skips
             name = leaf.get("name")
             if any([x.match(name) for x in self.skip]):
-                if self.debug:
-                    print "Skipping dataset based on 'skips'.  Name: %s" % name
+                logger.info("Skipping dataset based on 'skips'.  Name: %s" % name)
                 continue
 
             # Subset by the Selects defined
             gid = leaf.get('ID')
             if self.select is not None:
                 if gid is not None and any([x.match(gid) for x in self.select]):
-                    if self.debug:
-                        print "Processing %s" % gid
+                    logger.debug("Processing %s" % gid)
                     yield "%s?dataset=%s" % (url, gid)
                 else:
-                    if self.debug:
-                        print "Ignoring dataset based on 'selects'.  ID: %s" % gid
+                    logger.info("Ignoring dataset based on 'selects'.  ID: %s" % gid)
                     continue
             else:
-                if self.debug:
-                    print "Processing %s" % gid
+                logger.debug("Processing %s" % gid)
                 yield "%s?dataset=%s" % (url, gid)
 
 
@@ -117,7 +125,7 @@ class LeafDataset(object):
         try:
             tree = etree.XML(str(r.text))
         except etree.XMLSyntaxError:
-            print "Error procesing %s, invalid XML" % dataset_url
+            logger.error("Error procesing %s, invalid XML" % dataset_url)
         else:
             dataset = tree.find("{%s}dataset" % INV_NS)
             self.id = dataset.get("ID")

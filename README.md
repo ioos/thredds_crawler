@@ -86,7 +86,7 @@ If you need to remove or add a new `skip`, it is **strongly** encouraged you use
 
 ### Debugging
 
-You can pass in a `debug=True` parameter to Crawl to print to the console what is actually happening.
+You can pass in a `debug=True` parameter to Crawl to log to STDOUT what is actually happening.
 
 ```python
 > from thredds_crawler.crawl import Crawl
@@ -107,6 +107,19 @@ Skipping dataset based on 'skips'.  Name: 1-Day-Aggregation
 ```
 
 
+### Logging
+
+If you are using `thredds_crawler` from inside of another program, you can access its logs
+using the named logger `thredds_crawler` to control the log level.  If you access to the named
+logger, **do not** include `debug=True` when initializing the Crawl object.
+
+```python
+import logging
+crawl_log = logging.getLogger('thredds_crawler')
+crawl_log.setLevel(logging.WARNING)
+```
+
+
 ## Dataset
 
 You can get some basic information about a LeafDataset, including the services available.
@@ -120,7 +133,7 @@ MODIS-Agg
 > print dataset.name
 MODIS-Complete Aggregation
 > print dataset.services
-[ 
+[
   {
     'url': 'http://tds.maracoos.org/thredds/dodsC/MODIS-Agg.nc',
     'name': 'odap',
@@ -162,10 +175,10 @@ The entire THREDDS catalog metadata record is saved along with the dataset objec
 > c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
 > dataset = c.datasets[0]
 > print dataset.metadata.find("{http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0}documentation").text
-Ocean Color data are provided as a service to the broader community, and can be 
+Ocean Color data are provided as a service to the broader community, and can be
 influenced by sensor degradation and or algorithm changes. We make efforts to keep
 this dataset updated and calibrated. The products in these files are experimental.
-Aggregations are simple means of available data over the specified time frame. Use at 
+Aggregations are simple means of available data over the specified time frame. Use at
 your own discretion.
 ```
 
