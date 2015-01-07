@@ -30,8 +30,16 @@ class CrawlerTest(unittest.TestCase):
         assert len(c.datasets) == 0
 
     def test_iso_links(self):
-        # skip everything
         c = Crawl("http://thredds.axiomalaska.com/thredds/catalogs/global.html", debug=True)
         isos = [s.get("url") for d in c.datasets for s in d.services if s.get("service").lower() == "iso"]
         assert "?dataset=" in isos[0]
         assert "&catalog=" in isos[0]
+
+    def test_dataset_size_using_xml(self):
+        c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS/2014/catalog.xml", debug=True)
+        assert c.datasets[0].size == 77.56
+
+    def test_dataset_size_using_dap(self):
+        c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=["MODIS-One-Agg"], debug=True)
+        print c.datasets
+        assert c.datasets[0].size == 14678820.092728
