@@ -41,5 +41,4 @@ class CrawlerTest(unittest.TestCase):
 
     def test_dataset_size_using_dap(self):
         c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=["MODIS-One-Agg"], debug=True)
-        print c.datasets
         assert c.datasets[0].size == 14678820.092728
