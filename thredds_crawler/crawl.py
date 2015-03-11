@@ -119,6 +119,7 @@ class LeafDataset(object):
         self.name        = None
         self.metadata    = None
         self.catalog_url = None
+        self.data_size   = None
 
         # Get an etree object
         r = requests.get(dataset_url)
@@ -132,6 +133,23 @@ class LeafDataset(object):
             self.name = dataset.get("name")
             self.metadata = dataset.find("{%s}metadata" % INV_NS)
             self.catalog_url = dataset_url.split("?")[0]
+
+            # Data Size - http://www.unidata.ucar.edu/software/thredds/current/tds/catalog/InvCatalogSpec.html#dataSize
+            data_size = dataset.find("{%s}dataSize" % INV_NS)
+            if data_size is not None:
+                self.data_size = float(data_size.text)
+                data_units = data_size.get('units')
+                # Convert to MB
+                if data_units == "bytes":
+                    self.data_size *= 1e-6
+                elif data_units == "Kbytes":
+                    self.data_size *= 0.001
+                elif data_units == "Gbytes":
+                    self.data_size /= 0.001
+                elif data_units == "Tbytes":
+                    self.data_size /= 1e-6
+
+            # Services
             service_tag = dataset.find("{%s}serviceName" % INV_NS)
             if service_tag is None:
                 service_tag = self.metadata.find("{%s}serviceName" % INV_NS)
@@ -153,6 +171,27 @@ class LeafDataset(object):
                     if s.get('name') in ["iso", "ncml", "uddc"]:
                             url += "?dataset=%s&catalog=%s" % (self.id, urllib.quote_plus(self.catalog_url))
                     self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
+
+    @property
+    def size(self):
+        if self.data_size is not None:
+            return self.data_size
+        try:
+            dap_endpoint = next(s.get("url") for s in self.services if s.get("service").lower() == "opendap")
+            # Get sizes from DDS
+            try:
+                import netCDF4
+                nc = netCDF4.Dataset(dap_endpoint)
+                bites = 0
+                for vname in nc.variables:
+                    var = nc.variables.get(vname)
+                    bites += var.dtype.itemsize * var.size
+                return bites * 1e-6  # Megabytes
+            except ImportError:
+                logger.error("The python-netcdf4 library is required for computing the size of this dataset.")
+                return None
+        except StopIteration:
+            return None  # We can't calculate
 
     def __repr__(self):
         return "<LeafDataset id: %s, name: %s, services: %s>" % (self.id, self.name, str([s.get("service") for s in self.services]))

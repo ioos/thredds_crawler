@@ -166,6 +166,18 @@ If you have a list of datasets you can easily return all endpoints of a certain 
 ]
 ```
 
+You can also obtain the dataset size.  This returns the size on disk if the informaton is available in the TDS
+catalog.  If it is not available and a DAP endpoint is available, it returns the theoretical size of all of thh variables.
+This isn't necessarialy the size on disk, because it does not account for `missing_value` and `_FillValue` space.
+```python
+> from thredds_crawler.crawl import Crawl
+> c = Crawl("http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html", select=["MB_.*"])
+> sizes = [d.size for d in c.datasets]
+> print sizes
+[29247.410283999998, 72166.289680000002]
+```
+
+
 ## Metadata
 
 The entire THREDDS catalog metadata record is saved along with the dataset object.  It is an etree Element object ready for you to pull information out of.  See the [THREDDS metadata spec](http://www.unidata.ucar.edu/projects/THREDDS/tech/catalog/v1.0.2/InvCatalogSpec.html#metadata)
