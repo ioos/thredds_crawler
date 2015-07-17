@@ -168,8 +168,8 @@ class LeafDataset(object):
                 else:
                     url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix", "")
                     # ISO like services need additional parameters
-                    if s.get('name') in ["iso", "ncml", "uddc"]:
-                            url += "?dataset=%s&catalog=%s" % (self.id, urllib.quote_plus(self.catalog_url))
+                    if service.get('name') in ["iso", "ncml", "uddc"]:
+                        url += "?dataset=%s&catalog=%s" % (self.id, urllib.quote_plus(self.catalog_url))
                     self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
 
     @property

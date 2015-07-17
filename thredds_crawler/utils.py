@@ -6,6 +6,9 @@ def construct_url(url, href):
     base_url = u.scheme + "://" + u.netloc
     relative_path = urlparse.urljoin(base_url,os.path.split(u.path)[0])
 
+    if not href:
+        return url
+
     if href[0] == "/":
         # Absolute paths
         cat = urlparse.urljoin(base_url, href)
@@ -17,3 +20,4 @@ def construct_url(url, href):
         cat = relative_path + "/" + href
 
     return cat
+
