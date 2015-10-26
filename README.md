@@ -231,9 +231,9 @@ THREDDS_SERVERS = {
 for subfolder, thredds_url in THREDDS_SERVERS.items():
   logger.info("Crawling %s (%s)" % (subfolder, thredds_url))
   crawler = Crawl(thredds_url, debug=True)
-  isos = [(d.id, s.get("url")) for d in catalog.datasets for s in d.services if s.get("service").lower() == "iso"]
+  isos = [(d.id, s.get("url")) for d in crawler.datasets for s in d.services if s.get("service").lower() == "iso"]
   filefolder = os.path.join(SAVE_DIR, subfolder)
-  if not os.path.exists(filefolder)
+  if not os.path.exists(filefolder):
     os.makedirs(filefolder)
   for iso in isos:
     try:

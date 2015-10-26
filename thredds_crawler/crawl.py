@@ -1,6 +1,10 @@
 from thredds_crawler.etree import etree
-import urllib
-import urlparse
+try:
+    import urlparse
+    from urllib import quote_plus
+except ImportError:
+    from urllib import parse as urlparse
+    from urllib.parse import quote_plus
 import requests
 import os
 import sys
@@ -43,18 +47,18 @@ class Crawl(object):
 
         # Only process these dataset IDs
         if select is not None:
-            select = map(lambda x: re.compile(x), select)
+            select = [ re.compile(x) for x in select ]
         self.select = select
 
         # Skip these dataset links, such as a list of files
         # ie. "files/"
         if skip is None:
             skip = Crawl.SKIPS
-        self.skip = map(lambda x: re.compile(x), skip)
+        self.skip = [ re.compile(x) for x in skip ]
 
         self.visited  = []
-        datasets = [LeafDataset(url) for url in self._run(url=catalog_url) if url is not None]
-        self.datasets = filter(lambda x: x.id is not None, datasets)
+        datasets = [ LeafDataset(url) for url in self._run(url=catalog_url) if url is not None ]
+        self.datasets = [ x for x in datasets if x.id is not None ]
 
     def _run(self, url):
         if url in self.visited:
@@ -72,9 +76,9 @@ class Crawl(object):
         # Get an etree object
         try:
             r = requests.get(url)
-            tree = etree.XML(str(r.text))
+            tree = etree.XML(r.text.encode('utf-8'))
         except BaseException:
-            logger.error("Skipping %s (error parsing getting XML)" % url)
+            logger.error("Skipping %s (error parsing the XML XML)" % url)
             return
 
         # Crawl the catalogRefs:
@@ -124,7 +128,7 @@ class LeafDataset(object):
         # Get an etree object
         r = requests.get(dataset_url)
         try:
-            tree = etree.XML(str(r.text))
+            tree = etree.XML(r.text.encode('utf-8'))
         except etree.XMLSyntaxError:
             logger.error("Error procesing %s, invalid XML" % dataset_url)
         else:
@@ -163,13 +167,13 @@ class LeafDataset(object):
                             url += s.get("suffix")
                         # ISO like services need additional parameters
                         if s.get('name') in ["iso", "ncml", "uddc"]:
-                            url += "?dataset=%s&catalog=%s" % (self.id, urllib.quote_plus(self.catalog_url))
+                            url += "?dataset=%s&catalog=%s" % (self.id, quote_plus(self.catalog_url))
                         self.services.append( {'name' : s.get('name'), 'service' : s.get('serviceType'), 'url' : url } )
                 else:
                     url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix", "")
                     # ISO like services need additional parameters
                     if service.get('name') in ["iso", "ncml", "uddc"]:
-                        url += "?dataset=%s&catalog=%s" % (self.id, urllib.quote_plus(self.catalog_url))
+                        url += "?dataset=%s&catalog=%s" % (self.id, quote_plus(self.catalog_url))
                     self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
 
     @property
