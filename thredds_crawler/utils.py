@@ -1,10 +1,15 @@
 import os
-import urlparse
+
+try:
+    import urlparse
+except ImportError:
+    from urllib import parse as urlparse
+
 
 def construct_url(url, href):
     u = urlparse.urlsplit(url)
     base_url = u.scheme + "://" + u.netloc
-    relative_path = urlparse.urljoin(base_url,os.path.split(u.path)[0])
+    relative_path = urlparse.urljoin(base_url, os.path.split(u.path)[0])
 
     if not href:
         return url
@@ -20,4 +25,3 @@ def construct_url(url, href):
         cat = relative_path + "/" + href
 
     return cat
-
