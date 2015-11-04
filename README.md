@@ -1,6 +1,8 @@
 thredds_crawler
 ===============
 
+![Travis Build Status](https://travis-ci.org/asascience-open/thredds_crawler.svg)
+
 A simple crawler/parser for THREDDS catalogs
 
 Installation
