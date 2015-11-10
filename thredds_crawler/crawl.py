@@ -96,22 +96,6 @@ class Crawl(object):
         url = u.geturl()
         return url
 
-    def _yield_refs(self, url, tree):
-        '''
-        Yields the URL for each dataset found
-        :param str url: URL for the current catalog
-        :param lxml.etree.Eleemnt tree: Current XML Tree
-        '''
-        for ref in tree.findall('.//{%s}catalogRef' % INV_NS):
-            # Check skips
-            title = ref.get("{%s}title" % XLINK_NS)
-            if any([x.match(title) for x in self.skip]):
-                logger.info("Skipping catalogRef based on 'skips'.  Title: %s" % title)
-                continue
-
-            for ds in self._run(url=construct_url(url, ref.get("{%s}href" % XLINK_NS))):
-                yield ds
-
     def _yield_leaves(self, url, tree):
         '''
         Yields a URL corresponding to a leaf dataset for each dataset described by the catalog
