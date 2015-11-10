@@ -10,6 +10,8 @@ import os
 import sys
 import re
 from thredds_crawler.utils import construct_url
+import multiprocessing as mp
+
 
 INV_NS = "http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
 XLINK_NS = "http://www.w3.org/1999/xlink"
@@ -26,16 +28,32 @@ except ImportError:
 logger = logging.getLogger("thredds_crawler")
 logger.addHandler(NullHandler())
 
+def request_xml(url):
+    '''
+    Returns an etree.XMLRoot object loaded from the url
+    :param str url: URL for the resource to load as an XML
+    '''
+    try:
+        r = requests.get(url)
+        return r.text.encode('utf-8')
+    except BaseException:
+        logger.error("Skipping %s (error parsing the XML)" % url)
+    return
+
+def make_leaf(url):
+    return LeafDataset(url)
+
 
 class Crawl(object):
 
     SKIPS = [".*files.*", ".*Individual Files.*", ".*File_Access.*", ".*Forecast Model Run.*", ".*Constant Forecast Offset.*", ".*Constant Forecast Date.*"]
 
-    def __init__(self, catalog_url, select=None, skip=None, debug=None):
+    def __init__(self, catalog_url, select=None, skip=None, debug=None, workers=4):
         """
         select: a list of dataset IDs. Python regex supported.
         skip:   list of dataset names and/or a catalogRef titles.  Python regex supported.
         """
+        self.pool = mp.Pool(processes=workers)
 
         if debug is True:
             logger.setLevel(logging.DEBUG)
@@ -57,43 +75,49 @@ class Crawl(object):
         self.skip = [ re.compile(x) for x in skip ]
 
         self.visited  = []
-        datasets = [ LeafDataset(url) for url in self._run(url=catalog_url) if url is not None ]
+        datasets = []
+        urls = list(self._run(url=catalog_url))
+
+        jobs = [self.pool.apply_async(make_leaf, args=(url,)) for url in urls]
+        datasets = [j.get() for j in jobs]
+
         self.datasets = [ x for x in datasets if x.id is not None ]
 
-    def _run(self, url):
-        if url in self.visited:
-            logger.debug("Skipping %s (already crawled)" % url)
-            return
-        self.visited.append(url)
-
-        logger.info("Crawling: %s" % url)
-
+    def _get_catalog_url(self, url):
+        '''
+        Returns the appropriate catalog URL by replacing html with xml in some
+        cases
+        :param str url: URL to the catalog
+        '''
         u = urlparse.urlsplit(url)
         name, ext = os.path.splitext(u.path)
         if ext == ".html":
             u = urlparse.urlsplit(url.replace(".html", ".xml"))
         url = u.geturl()
-        # Get an etree object
-        try:
-            r = requests.get(url)
-            tree = etree.XML(r.text.encode('utf-8'))
-        except BaseException:
-            logger.error("Skipping %s (error parsing the XML XML)" % url)
-            return
+        return url
 
-        # Crawl the catalogRefs:
+    def _yield_refs(self, url, tree):
+        '''
+        Yields the URL for each dataset found
+        :param str url: URL for the current catalog
+        :param lxml.etree.Eleemnt tree: Current XML Tree
+        '''
         for ref in tree.findall('.//{%s}catalogRef' % INV_NS):
             # Check skips
             title = ref.get("{%s}title" % XLINK_NS)
-            if not any([x.match(title) for x in self.skip]):
-                for ds in self._run(url=construct_url(url, ref.get("{%s}href" % XLINK_NS))):
-                    yield ds
-            else:
+            if any([x.match(title) for x in self.skip]):
                 logger.info("Skipping catalogRef based on 'skips'.  Title: %s" % title)
                 continue
 
-        # Get the leaf datasets
-        ds = []
+            for ds in self._run(url=construct_url(url, ref.get("{%s}href" % XLINK_NS))):
+                yield ds
+
+    def _yield_leaves(self, url, tree):
+        '''
+        Yields a URL corresponding to a leaf dataset for each dataset described by the catalog
+        :param str url: URL for the current catalog
+        :param lxml.etree.Eleemnt tree: Current XML Tree
+        '''
         for leaf in tree.findall('.//{%s}dataset[@urlPath]' % INV_NS):
             # Subset by the skips
             name = leaf.get("name")
@@ -113,6 +137,67 @@ class Crawl(object):
             else:
                 logger.debug("Processing %s" % gid)
                 yield "%s?dataset=%s" % (url, gid)
+
+    def _compile_references(self, url, tree):
+        '''
+        Returns a list of catalog reference URLs for the current catalog
+        :param str url: URL for the current catalog
+        :param lxml.etree.Eleemnt tree: Current XML Tree
+        '''
+        references = []
+        for ref in tree.findall('.//{%s}catalogRef' % INV_NS):
+            # Check skips
+            title = ref.get("{%s}title" % XLINK_NS)
+            if any([x.match(title) for x in self.skip]):
+                logger.info("Skipping catalogRef based on 'skips'.  Title: %s" % title)
+                continue
+            references.append(construct_url(url, ref.get("{%s}href" % XLINK_NS)))
+        return references
+
+    def _run(self, url):
+        '''
+        Performs a multiprocess depth-first-search of the catalog references
+        and yields a URL for each leaf dataset found
+        :param str url: URL for the current catalog
+        '''
+        if url in self.visited:
+            logger.debug("Skipping %s (already crawled)" % url)
+            return
+        self.visited.append(url)
+
+        logger.info("Crawling: %s" % url)
+        url = self._get_catalog_url(url)
+
+        # Get an etree object
+        xml_content = request_xml(url)
+        for ds in self._build_catalog(url, xml_content):
+            yield ds
+
+    def _build_catalog(self, url, xml_content):
+        '''
+        Recursive function to perform the DFS and yield the leaf datasets
+        :param str url: URL for the current catalog
+        :param str xml_content: XML Body returned from HTTP Request
+        '''
+        try:
+            tree = etree.XML(xml_content)
+        except:
+            return
+
+        # Get a list of URLs
+        references = self._compile_references(url, tree)
+        # Using multiple processes, make HTTP requests for each child catalog
+        jobs = [self.pool.apply_async(request_xml, args=(ref,)) for ref in references]
+        responses = [j.get() for j in jobs]
+
+        # This is essentially the graph traversal step
+        for i, response in enumerate(responses):
+            for ds in self._build_catalog(references[i], response):
+                yield ds
+
+        # Yield the leaves
+        for ds in self._yield_leaves(url, tree):
+            yield ds
 
 
 class LeafDataset(object):
