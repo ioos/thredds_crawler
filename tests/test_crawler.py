@@ -1,4 +1,7 @@
 import unittest
+from datetime import datetime, timedelta
+
+import pytz
 
 from thredds_crawler.crawl import Crawl
 
@@ -42,3 +45,25 @@ class CrawlerTest(unittest.TestCase):
     def test_dataset_size_using_dap(self):
         c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=["MODIS-One-Agg"], debug=True)
         self.assertIsNotNone(c.datasets[0].size)
+
+    def test_modified_time(self):
+        # after with timezone
+        af = datetime(2015, 12, 30, 0, 0, tzinfo=pytz.utc)
+        c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2015/catalog.xml", after=af, debug=True)
+        assert len(c.datasets) == 3
+
+        # after without timezone
+        af = datetime(2015, 12, 30, 0, 0)
+        c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2015/catalog.xml", after=af, debug=True)
+        assert len(c.datasets) == 3
+
+        # before
+        bf = datetime(2016, 1, 5, 0, 0)
+        c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2016/catalog.xml", before=bf, debug=True)
+        assert len(c.datasets) == 3
+
+        # both
+        af = datetime(2016, 1, 20, 0, 0)
+        bf = datetime(2016, 2, 1, 0, 0)
+        c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2016/catalog.xml", before=bf, after=af, debug=True)
+        assert len(c.datasets) == 11

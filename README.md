@@ -43,8 +43,7 @@ You can select datasets based on their THREDDS ID using the 'select' parameter. 
 
 ### Skip
 
-You can skip datasets based on their `name` and catalogRefs based on their `xlink:title`.  By default, the crawler
-uses some common regular expressions to skip lists of thousands upon thousands of individual files that are part of aggregations or FMRCs:
+You can skip datasets based on their `name` and catalogRefs based on their `xlink:title`.  By default, the crawler uses some common regular expressions to skip lists of thousands upon thousands of individual files that are part of aggregations or FMRCs:
 
 *  `.*files.*`
 *  `.*Individual Files.*`
@@ -85,6 +84,32 @@ If you need to remove or add a new `skip`, it is **strongly** encouraged you use
   <LeafDataset id: MODIS-2013-Agg, name: MODIS-2013 Aggregation, services: ['OPENDAP', 'ISO']>,
 ]
 ```
+
+### Modified Time
+
+You can select data by the THREDDS `modified_time` by using a the `before` and `after` parameters. Keep in mind that the modified time is only avaiable for individual files hosted in THREDDS (not aggregations).
+
+```python
+import pytz
+from thredds_crawler.crawl import Crawl
+
+# after
+af = datetime(2015, 12, 30, 0, 0, tzinfo=pytz.utc)
+c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2015/catalog.xml", after=af)
+assert len(c.datasets) == 3
+
+# before
+bf = datetime(2016, 1, 5, 0, 0)
+c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2016/catalog.xml", before=bf)
+assert len(c.datasets) == 3
+
+# both
+af = datetime(2016, 1, 20, 0, 0)
+bf = datetime(2016, 2, 1, 0, 0)
+c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2016/catalog.xml", before=bf, after=af)
+assert len(c.datasets) == 11
+```
+
 
 ### Debugging
 
