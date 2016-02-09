@@ -21,11 +21,11 @@ class CrawlerTest(unittest.TestCase):
 
     def test_regex_selects(self):
         c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
-        assert len(c.datasets) == 3
+        assert len(c.datasets) == 12
 
         # Get all DAP links:
         services = [s.get("url") for d in c.datasets for s in d.services if s.get("service").lower() == "opendap"]
-        assert len(services) == 3
+        assert len(services) == 12
 
     def test_regex_skips(self):
         # skip everything
