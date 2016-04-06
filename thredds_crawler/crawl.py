@@ -9,6 +9,8 @@ import requests
 import os
 import sys
 import re
+from datetime import datetime
+import pytz
 from thredds_crawler.utils import construct_url
 
 INV_NS = "http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
@@ -31,7 +33,7 @@ class Crawl(object):
 
     SKIPS = [".*files.*", ".*Individual Files.*", ".*File_Access.*", ".*Forecast Model Run.*", ".*Constant Forecast Offset.*", ".*Constant Forecast Date.*"]
 
-    def __init__(self, catalog_url, select=None, skip=None, debug=None):
+    def __init__(self, catalog_url, select=None, skip=None, before=None, after=None, debug=None):
         """
         select: a list of dataset IDs. Python regex supported.
         skip:   list of dataset names and/or a catalogRef titles.  Python regex supported.
@@ -55,6 +57,28 @@ class Crawl(object):
         if skip is None:
             skip = Crawl.SKIPS
         self.skip = [ re.compile(x) for x in skip ]
+
+        # Only return datasets with a modified date greater or equal to this
+        if after is not None:
+            if not isinstance(after, datetime):
+                raise ValueError("'after' parameter should be a datetime object")
+            else:
+                if after.tzinfo:
+                    after = after.astimezone(pytz.utc)
+                else:
+                    after = after.replace(tzinfo=pytz.utc)
+        self.after = after
+
+        # Only return datasets with a modified date greater or equal to this
+        if before is not None:
+            if not isinstance(before, datetime):
+                raise ValueError("'before' parameter should be a datetime object")
+            else:
+                if before.tzinfo:
+                    before = before.astimezone(pytz.utc)
+                else:
+                    before = before.replace(tzinfo=pytz.utc)
+        self.before = before
 
         self.visited  = []
         datasets = [ LeafDataset(url) for url in self._run(url=catalog_url) if url is not None ]
@@ -100,6 +124,15 @@ class Crawl(object):
             if any([x.match(name) for x in self.skip]):
                 logger.info("Skipping dataset based on 'skips'.  Name: %s" % name)
                 continue
+
+            # Subset by before and after
+            date_tag = leaf.find('.//{%s}date[@type="modified"]' % INV_NS)
+            if date_tag is not None:
+                dt = datetime.strptime(date_tag.text, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.utc)
+                if self.after and dt < self.after:
+                    continue
+                if self.before and dt > self.before:
+                    continue
 
             # Subset by the Selects defined
             gid = leaf.get('ID')
