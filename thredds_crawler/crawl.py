@@ -12,6 +12,7 @@ import re
 from datetime import datetime
 import pytz
 from thredds_crawler.utils import construct_url
+from dateutil.parser import parse
 
 INV_NS = "http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
 XLINK_NS = "http://www.w3.org/1999/xlink"
@@ -128,7 +129,13 @@ class Crawl(object):
             # Subset by before and after
             date_tag = leaf.find('.//{%s}date[@type="modified"]' % INV_NS)
             if date_tag is not None:
-                dt = datetime.strptime(date_tag.text, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.utc)
+                try:
+                    dt = parse(date_tag.text)
+                except ValueError:
+                    logger.error("Skipping dataset.Wrong date string %s " % date_tag.text)
+                    continue
+                else:
+                    dt = dt.replace(tzinfo=pytz.utc)
                 if self.after and dt < self.after:
                     continue
                 if self.before and dt > self.before:
