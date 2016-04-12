@@ -1,4 +1,4 @@
 requests
 lxml
 pytz
-dateutil
+python-dateutil
