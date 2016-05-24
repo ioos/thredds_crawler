@@ -110,6 +110,9 @@ class Crawl(object):
 
         self.datasets = [ x for x in datasets if x.id is not None ]
 
+        self.pool.close()
+        self.pool.join()
+
     def _get_catalog_url(self, url):
         '''
         Returns the appropriate catalog URL by replacing html with xml in some
