@@ -85,6 +85,39 @@ If you need to remove or add a new `skip`, it is **strongly** encouraged you use
 ]
 ```
 
+### Workers
+
+By default there are `4` worker threads used in the crawling. You can change this by specifying a `workers` parameter.
+
+```python
+import time
+from contextlib import contextmanager
+from thredds_crawler.crawl import Crawl
+
+@contextmanager
+def timeit(name):
+    startTime = time.time()
+    yield
+    elapsedTime = time.time() - startTime
+    print('[{}] finished in {} ms'.format(name, int(elapsedTime * 1000)))
+
+for x in range(1, 11):
+    with timeit('{} workers'.format(x)):
+        Crawl("http://tds.maracoos.org/thredds/MODIS.xml", workers=x)
+
+[1 workers] finished in 872 ms
+[2 workers] finished in 397 ms
+[3 workers] finished in 329 ms
+[4 workers] finished in 260 ms
+[5 workers] finished in 264 ms
+[6 workers] finished in 219 ms
+[7 workers] finished in 212 ms
+[8 workers] finished in 185 ms
+[9 workers] finished in 217 ms
+[10 workers] finished in 205 ms
+```
+
+
 ### Modified Time
 
 You can select data by the THREDDS `modified_time` by using a the `before` and `after` parameters. Keep in mind that the modified time is only avaiable for individual files hosted in THREDDS (not aggregations).
@@ -271,7 +304,3 @@ for subfolder, thredds_url in THREDDS_SERVERS.items():
     except BaseException:
       logger.exception("Error!")
 ```
-
-## Known Issues
-
-*  Single threaded
