@@ -8,12 +8,7 @@ python:
 before_install:
   # Install miniconda
   # -----------------
-  - export CONDA_BASE=http://repo.continuum.io/miniconda/Miniconda
-  - if [[ "$TRAVIS_PYTHON_VERSION" == 2* ]]; then
-      wget ${CONDA_BASE}-3.7.0-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget ${CONDA_BASE}3-3.7.0-Linux-x86_64.sh -O miniconda.sh;
-    fi
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
 
@@ -30,8 +25,8 @@ before_install:
 install:
   # Customise the testing environment
   # ---------------------------------
-  - conda install -c ioos -c axiom-data-science --file requirements.txt
-  - conda install -c ioos netCDF4  # For optional DAP file size calculation
-  - conda install -c ioos pytest
+  - conda install -c conda-forge --file requirements.txt
+  - conda install -c conda-forge netCDF4  # For optional DAP file size calculation
+  - conda install -c conda-forge pytest
 
 script: py.test -rx -v
