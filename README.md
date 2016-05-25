@@ -5,29 +5,29 @@ thredds_crawler
 
 A simple crawler/parser for THREDDS catalogs
 
-Installation
-------------
-
-thredds_crawler is available on pypi and is easiest installed using `pip`.
+## Installation
 
 ```bash
 pip install thredds_crawler
 ```
-`lxml` and `requests` will be installed automatically
 
+or
 
-Usage
-------
+```bash
+conda install -c conda-forge thredds_crawler
+```
+
+## Usage
+
 
 ### Select
 
 You can select datasets based on their THREDDS ID using the 'select' parameter.  Python regex is supported.
 
-
 ```python
-> from thredds_crawler.crawl import Crawl
-> c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
-> print c.datasets
+from thredds_crawler.crawl import Crawl
+c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
+print c.datasets
 [
   <LeafDataset id: MODIS-Agg, name: MODIS-Complete Aggregation, services: ['OPENDAP', 'ISO']>,
   <LeafDataset id: MODIS-2009-Agg, name: MODIS-2009 Aggregation, services: ['OPENDAP', 'ISO']>,
@@ -55,9 +55,10 @@ You can skip datasets based on their `name` and catalogRefs based on their `xlin
 By setting the `skip` parameter to anything other than a superset of the default you run the risk of having some angry system admins after you.
 
 You can access the default `skip` list through the Crawl.SKIPS class variable
+
 ```python
-> from thredds_crawler.crawl import Crawl
-> print Crawl.SKIPS
+from thredds_crawler.crawl import Crawl
+print Crawl.SKIPS
 [
   '.*files.*',
   '.*Individual Files.*',
@@ -71,10 +72,11 @@ You can access the default `skip` list through the Crawl.SKIPS class variable
 If you need to remove or add a new `skip`, it is **strongly** encouraged you use the `SKIPS` class variable as a starting point!
 
 ```python
-> from thredds_crawler.crawl import Crawl
-> skips = Crawl.SKIPS + [".*-Day-Aggregation"]
-> c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"], skip=skips)
-> print c.datasets
+from thredds_crawler.crawl import Crawl
+skips = Crawl.SKIPS + [".*-Day-Aggregation"]
+c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"], skip=skips)
+print c.datasets
+
 [
   <LeafDataset id: MODIS-Agg, name: MODIS-Complete Aggregation, services: ['OPENDAP', 'ISO']>,
   <LeafDataset id: MODIS-2009-Agg, name: MODIS-2009 Aggregation, services: ['OPENDAP', 'ISO']>,
@@ -84,6 +86,39 @@ If you need to remove or add a new `skip`, it is **strongly** encouraged you use
   <LeafDataset id: MODIS-2013-Agg, name: MODIS-2013 Aggregation, services: ['OPENDAP', 'ISO']>,
 ]
 ```
+
+### Workers
+
+By default there are `4` worker threads used in the crawling. You can change this by specifying a `workers` parameter.
+
+```python
+import time
+from contextlib import contextmanager
+from thredds_crawler.crawl import Crawl
+
+@contextmanager
+def timeit(name):
+    startTime = time.time()
+    yield
+    elapsedTime = time.time() - startTime
+    print('[{}] finished in {} ms'.format(name, int(elapsedTime * 1000)))
+
+for x in range(1, 11):
+    with timeit('{} workers'.format(x)):
+        Crawl("http://tds.maracoos.org/thredds/MODIS.xml", workers=x)
+
+[1 workers] finished in 872 ms
+[2 workers] finished in 397 ms
+[3 workers] finished in 329 ms
+[4 workers] finished in 260 ms
+[5 workers] finished in 264 ms
+[6 workers] finished in 219 ms
+[7 workers] finished in 212 ms
+[8 workers] finished in 185 ms
+[9 workers] finished in 217 ms
+[10 workers] finished in 205 ms
+```
+
 
 ### Modified Time
 
@@ -116,9 +151,10 @@ assert len(c.datasets) == 11
 You can pass in a `debug=True` parameter to Crawl to log to STDOUT what is actually happening.
 
 ```python
-> from thredds_crawler.crawl import Crawl
-> skips = Crawl.SKIPS + [".*-Day-Aggregation"]
->>> c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"], skip=skips, debug=True)
+from thredds_crawler.crawl import Crawl
+skips = Crawl.SKIPS + [".*-Day-Aggregation"]
+c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"], skip=skips, debug=True)
+
 Crawling: http://tds.maracoos.org/thredds/MODIS.xml
 Skipping catalogRef based on 'skips'.  Title: MODIS Individual Files
 Skipping catalogRef based on 'skips'.  Title: 1-Day Individual Files
@@ -152,14 +188,14 @@ crawl_log.setLevel(logging.WARNING)
 You can get some basic information about a LeafDataset, including the services available.
 
 ```python
-> from thredds_crawler.crawl import Crawl
-> c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
-> dataset = c.datasets[0]
-> print dataset.id
+from thredds_crawler.crawl import Crawl
+c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
+dataset = c.datasets[0]
+print dataset.id
 MODIS-Agg
-> print dataset.name
+print dataset.name
 MODIS-Complete Aggregation
-> print dataset.services
+print dataset.services
 [
   {
     'url': 'http://tds.maracoos.org/thredds/dodsC/MODIS-Agg.nc',
@@ -175,11 +211,12 @@ MODIS-Complete Aggregation
 ```
 
 If you have a list of datasets you can easily return all endpoints of a certain type:
+
 ```python
-> from thredds_crawler.crawl import Crawl
-> c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
-> urls = [s.get("url") for d in c.datasets for s in d.services if s.get("service").lower() == "opendap"]
-> print urls
+from thredds_crawler.crawl import Crawl
+c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
+urls = [s.get("url") for d in c.datasets for s in d.services if s.get("service").lower() == "opendap"]
+print urls
 [
   'http://tds.maracoos.org/thredds/dodsC/MODIS-Agg.nc',
   'http://tds.maracoos.org/thredds/dodsC/MODIS-2009-Agg.nc',
@@ -196,11 +233,12 @@ If you have a list of datasets you can easily return all endpoints of a certain 
 You can also obtain the dataset size.  This returns the size on disk if the informaton is available in the TDS
 catalog.  If it is not available and a DAP endpoint is available, it returns the theoretical size of all of thh variables.
 This isn't necessarialy the size on disk, because it does not account for `missing_value` and `_FillValue` space.
+
 ```python
-> from thredds_crawler.crawl import Crawl
-> c = Crawl("http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html", select=["MB_.*"])
-> sizes = [d.size for d in c.datasets]
-> print sizes
+from thredds_crawler.crawl import Crawl
+c = Crawl("http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html", select=["MB_.*"])
+sizes = [d.size for d in c.datasets]
+print sizes
 [29247.410283999998, 72166.289680000002]
 ```
 
@@ -210,10 +248,10 @@ This isn't necessarialy the size on disk, because it does not account for `missi
 The entire THREDDS catalog metadata record is saved along with the dataset object.  It is an etree Element object ready for you to pull information out of.  See the [THREDDS metadata spec](http://www.unidata.ucar.edu/projects/THREDDS/tech/catalog/v1.0.2/InvCatalogSpec.html#metadata)
 
 ```python
-> from thredds_crawler.crawl import Crawl
-> c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
-> dataset = c.datasets[0]
-> print dataset.metadata.find("{http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0}documentation").text
+from thredds_crawler.crawl import Crawl
+c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
+dataset = c.datasets[0]
+print dataset.metadata.find("{http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0}documentation").text
 Ocean Color data are provided as a service to the broader community, and can be
 influenced by sensor degradation and or algorithm changes. We make efforts to keep
 this dataset updated and calibrated. The products in these files are experimental.
@@ -271,7 +309,3 @@ for subfolder, thredds_url in THREDDS_SERVERS.items():
     except BaseException:
       logger.exception("Error!")
 ```
-
-## Known Issues
-
-*  Single threaded
