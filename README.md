@@ -1,7 +1,7 @@
 thredds_crawler
 ===============
 
-![Travis Build Status](https://travis-ci.org/asascience-open/thredds_crawler.svg)
+[![Build Status](https://travis-ci.org/asascience-open/thredds_crawler.svg?branch=master)](https://travis-ci.org/asascience-open/thredds_crawler)
 
 A simple crawler/parser for THREDDS catalogs
 
