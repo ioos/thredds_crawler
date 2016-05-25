@@ -1,2 +1,4 @@
 include *.txt
 include README.md
+include VERSION
+include LICENSE
