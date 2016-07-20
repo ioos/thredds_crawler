@@ -15,7 +15,6 @@ from thredds_crawler.utils import construct_url
 from dateutil.parser import parse
 import multiprocessing as mp
 
-
 INV_NS = "http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
 XLINK_NS = "http://www.w3.org/1999/xlink"
 
@@ -38,7 +37,7 @@ def request_xml(url):
     :param str url: URL for the resource to load as an XML
     '''
     try:
-        r = requests.get(url)
+        r = requests.get(url, verify=False)
         return r.text.encode('utf-8')
     except BaseException:
         logger.error("Skipping %s (error parsing the XML)" % url)
@@ -240,7 +239,7 @@ class LeafDataset(object):
         self.data_size   = None
 
         # Get an etree object
-        r = requests.get(dataset_url)
+        r = requests.get(dataset_url, verify=False)
         try:
             tree = etree.XML(r.text.encode('utf-8'))
         except etree.XMLSyntaxError:

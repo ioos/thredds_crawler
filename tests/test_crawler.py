@@ -67,3 +67,7 @@ class CrawlerTest(unittest.TestCase):
         bf = datetime(2016, 2, 1, 0, 0)
         c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2016/catalog.xml", before=bf, after=af, debug=True)
         assert len(c.datasets) == 11
+
+    def test_ssl(self):
+        c = Crawl("https://opendap.co-ops.nos.noaa.gov/thredds/catalog/NOAA/DBOFS/MODELS/201501/catalog.xml", debug=True)
+        assert len(c.datasets) > 0
