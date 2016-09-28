@@ -20,10 +20,10 @@ setup(
     version             = version(),
     description         = "A Python library for crawling THREDDS servers",
     long_description    = readme(),
-    license             = 'GPLv3',
+    license             = 'MIT',
     author              = "Kyle Wilcox",
     author_email        = "kyle@axiomdatascience.com",
-    url                 = "https://github.com/asascience-open/thredds_crawler",
+    url                 = "https://github.com/ioos/thredds_crawler",
     packages            = find_packages(),
     install_requires    = reqs,
     classifiers         = [
