@@ -8,6 +8,7 @@ import requests
 import os
 import sys
 import re
+import logging
 from datetime import datetime
 import pytz
 from lxml import etree
@@ -18,7 +19,6 @@ import multiprocessing as mp
 INV_NS = "http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
 XLINK_NS = "http://www.w3.org/1999/xlink"
 
-import logging
 try:
     # Python >= 2.7
     from logging import NullHandler
@@ -27,7 +27,7 @@ except ImportError:
     class NullHandler(logging.Handler):
         def emit(self, record):
             pass
-logger = logging.getLogger("thredds_crawler")
+logger = logging.getLogger(__name__)
 
 
 def request_xml(url):
