@@ -151,6 +151,22 @@ assert len(c.datasets) == 11
 ```
 
 
+### Authentication
+
+You can pass an auth parameter as needed. It needs to be a [requests compatible auth object](http://docs.python-requests.org/en/latest/user/authentication/).
+
+```python
+from thredds_crawler.crawl import Crawl
+auth = ('user', 'password')
+c = Crawl(
+  'http://tds.maracoos.org/thredds/MODIS.xml',
+  select=['.*-Agg'],
+  skip=Crawl.SKIPS,
+  auth=auth
+)
+```
+
+
 ### Debugging
 
 You can pass in a `debug=True` parameter to Crawl to log to STDOUT what is actually happening.

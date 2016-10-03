@@ -32,32 +32,34 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def request_xml(url):
+def request_xml(url, auth=None):
     '''
     Returns an etree.XMLRoot object loaded from the url
     :param str url: URL for the resource to load as an XML
     '''
     try:
-        r = requests.get(url, verify=False)
+        r = requests.get(url, auth=auth, verify=False)
         return r.text.encode('utf-8')
     except BaseException:
         logger.error("Skipping %s (error parsing the XML)" % url)
     return
 
 
-def make_leaf(url):
-    return LeafDataset(url)
+def make_leaf(url, auth):
+    return LeafDataset(url, auth=auth)
 
 
 class Crawl(object):
 
     SKIPS = [".*files.*", ".*Individual Files.*", ".*File_Access.*", ".*Forecast Model Run.*", ".*Constant Forecast Offset.*", ".*Constant Forecast Date.*"]
 
-    def __init__(self, catalog_url, select=None, skip=None, before=None, after=None, debug=None, workers=4):
+    def __init__(self, catalog_url, select=None, skip=None, before=None, after=None, debug=None, workers=None, auth=None):
         """
-        select: a list of dataset IDs. Python regex supported.
-        skip:   list of dataset names and/or a catalogRef titles.  Python regex supported.
+        :param select list: Dataset IDs. Python regex supported.
+        :param list skip: Dataset names and/or a catalogRef titles. Python regex supported.
+        :param requests.auth.AuthBase auth: requets auth object to use
         """
+        workers = workers or 4
         self.pool = mp.Pool(processes=workers)
 
         if debug is True:
@@ -105,9 +107,9 @@ class Crawl(object):
 
         self.visited  = []
         datasets = []
-        urls = list(self._run(url=catalog_url))
+        urls = list(self._run(url=catalog_url, auth=auth))
 
-        jobs = [self.pool.apply_async(make_leaf, args=(url,)) for url in urls]
+        jobs = [self.pool.apply_async(make_leaf, args=(url, auth)) for url in urls]
         datasets = [j.get() for j in jobs]
 
         self.datasets = [ x for x in datasets if x.id is not None ]
@@ -185,11 +187,12 @@ class Crawl(object):
             references.append(construct_url(url, ref.get("{%s}href" % XLINK_NS)))
         return references
 
-    def _run(self, url):
+    def _run(self, url, auth):
         '''
         Performs a multiprocess depth-first-search of the catalog references
         and yields a URL for each leaf dataset found
         :param str url: URL for the current catalog
+        :param requests.auth.AuthBase auth: requets auth object to use
         '''
         if url in self.visited:
             logger.debug("Skipping %s (already crawled)" % url)
@@ -200,7 +203,7 @@ class Crawl(object):
         url = self._get_catalog_url(url)
 
         # Get an etree object
-        xml_content = request_xml(url)
+        xml_content = request_xml(url, auth)
         for ds in self._build_catalog(url, xml_content):
             yield ds
 
@@ -232,7 +235,7 @@ class Crawl(object):
 
 
 class LeafDataset(object):
-    def __init__(self, dataset_url):
+    def __init__(self, dataset_url, auth=None):
 
         self.services    = []
         self.id          = None
@@ -242,7 +245,7 @@ class LeafDataset(object):
         self.data_size   = None
 
         # Get an etree object
-        r = requests.get(dataset_url, verify=False)
+        r = requests.get(dataset_url, auth=auth, verify=False)
         try:
             tree = etree.XML(r.text.encode('utf-8'))
         except etree.XMLSyntaxError:
