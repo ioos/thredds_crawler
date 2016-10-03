@@ -5,6 +5,7 @@ except ImportError:
     from urllib import parse as urlparse
     from urllib.parse import quote_plus
 import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import os
 import sys
 import re
@@ -18,6 +19,7 @@ import multiprocessing as mp
 
 INV_NS = "http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
 XLINK_NS = "http://www.w3.org/1999/xlink"
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 try:
     # Python >= 2.7
