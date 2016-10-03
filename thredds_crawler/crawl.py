@@ -28,7 +28,6 @@ except ImportError:
         def emit(self, record):
             pass
 logger = logging.getLogger("thredds_crawler")
-logger.addHandler(NullHandler())
 
 
 def request_xml(url):
@@ -66,6 +65,8 @@ class Crawl(object):
             formatter = logging.Formatter('%(asctime)s - [%(levelname)s] %(message)s')
             ch.setFormatter(formatter)
             logger.addHandler(ch)
+        else:
+            logger.addHandler(NullHandler())
 
         # Only process these dataset IDs
         if select is not None:
