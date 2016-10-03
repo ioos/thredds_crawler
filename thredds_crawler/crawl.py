@@ -246,49 +246,52 @@ class LeafDataset(object):
         except etree.XMLSyntaxError:
             logger.error("Error procesing %s, invalid XML" % dataset_url)
         else:
-            dataset = tree.find("{%s}dataset" % INV_NS)
-            self.id = dataset.get("ID")
-            self.name = dataset.get("name")
-            self.metadata = dataset.find("{%s}metadata" % INV_NS)
-            self.catalog_url = dataset_url.split("?")[0]
+            try:
+                dataset = tree.find("{%s}dataset" % INV_NS)
+                self.id = dataset.get("ID")
+                self.name = dataset.get("name")
+                self.metadata = dataset.find("{%s}metadata" % INV_NS)
+                self.catalog_url = dataset_url.split("?")[0]
 
-            # Data Size - http://www.unidata.ucar.edu/software/thredds/current/tds/catalog/InvCatalogSpec.html#dataSize
-            data_size = dataset.find("{%s}dataSize" % INV_NS)
-            if data_size is not None:
-                self.data_size = float(data_size.text)
-                data_units = data_size.get('units')
-                # Convert to MB
-                if data_units == "bytes":
-                    self.data_size *= 1e-6
-                elif data_units == "Kbytes":
-                    self.data_size *= 0.001
-                elif data_units == "Gbytes":
-                    self.data_size /= 0.001
-                elif data_units == "Tbytes":
-                    self.data_size /= 1e-6
+                # Data Size - http://www.unidata.ucar.edu/software/thredds/current/tds/catalog/InvCatalogSpec.html#dataSize
+                data_size = dataset.find("{%s}dataSize" % INV_NS)
+                if data_size is not None:
+                    self.data_size = float(data_size.text)
+                    data_units = data_size.get('units')
+                    # Convert to MB
+                    if data_units == "bytes":
+                        self.data_size *= 1e-6
+                    elif data_units == "Kbytes":
+                        self.data_size *= 0.001
+                    elif data_units == "Gbytes":
+                        self.data_size /= 0.001
+                    elif data_units == "Tbytes":
+                        self.data_size /= 1e-6
 
-            # Services
-            service_tag = dataset.find("{%s}serviceName" % INV_NS)
-            if service_tag is None:
-                service_tag = self.metadata.find("{%s}serviceName" % INV_NS)
-            service_name = service_tag.text
+                # Services
+                service_tag = dataset.find("{%s}serviceName" % INV_NS)
+                if service_tag is None:
+                    service_tag = self.metadata.find("{%s}serviceName" % INV_NS)
+                service_name = service_tag.text
 
-            for service in tree.findall(".//{%s}service[@name='%s']" % (INV_NS, service_name)):
-                if service.get("serviceType") == "Compound":
-                    for s in service.findall("{%s}service" % INV_NS):
-                        url = construct_url(dataset_url, s.get('base')) + dataset.get("urlPath")
-                        if s.get("suffix") is not None:
-                            url += s.get("suffix")
+                for service in tree.findall(".//{%s}service[@name='%s']" % (INV_NS, service_name)):
+                    if service.get("serviceType") == "Compound":
+                        for s in service.findall("{%s}service" % INV_NS):
+                            url = construct_url(dataset_url, s.get('base')) + dataset.get("urlPath")
+                            if s.get("suffix") is not None:
+                                url += s.get("suffix")
+                            # ISO like services need additional parameters
+                            if s.get('name') in ["iso", "ncml", "uddc"]:
+                                url += "?dataset=%s&catalog=%s" % (self.id, quote_plus(self.catalog_url))
+                            self.services.append( {'name' : s.get('name'), 'service' : s.get('serviceType'), 'url' : url } )
+                    else:
+                        url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix", "")
                         # ISO like services need additional parameters
-                        if s.get('name') in ["iso", "ncml", "uddc"]:
+                        if service.get('name') in ["iso", "ncml", "uddc"]:
                             url += "?dataset=%s&catalog=%s" % (self.id, quote_plus(self.catalog_url))
-                        self.services.append( {'name' : s.get('name'), 'service' : s.get('serviceType'), 'url' : url } )
-                else:
-                    url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix", "")
-                    # ISO like services need additional parameters
-                    if service.get('name') in ["iso", "ncml", "uddc"]:
-                        url += "?dataset=%s&catalog=%s" % (self.id, quote_plus(self.catalog_url))
-                    self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
+                        self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
+            except BaseException as e:
+                logger.error('Could not process {}. {}.'.format(dataset_url, e))
 
     @property
     def size(self):
