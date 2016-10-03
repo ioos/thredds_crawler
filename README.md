@@ -1,5 +1,4 @@
-thredds_crawler
-===============
+# thredds_crawler
 
 [![Build Status](https://travis-ci.org/ioos/thredds_crawler.svg?branch=master)](https://travis-ci.org/ioos/thredds_crawler)
 
@@ -26,7 +25,7 @@ You can select datasets based on their THREDDS ID using the 'select' parameter. 
 
 ```python
 from thredds_crawler.crawl import Crawl
-c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
+c = Crawl('http://tds.maracoos.org/thredds/MODIS.xml', select=[".*-Agg"])
 print c.datasets
 [
   <LeafDataset id: MODIS-Agg, name: MODIS-Complete Aggregation, services: ['OPENDAP', 'ISO']>,
@@ -74,7 +73,11 @@ If you need to remove or add a new `skip`, it is **strongly** encouraged you use
 ```python
 from thredds_crawler.crawl import Crawl
 skips = Crawl.SKIPS + [".*-Day-Aggregation"]
-c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"], skip=skips)
+c = Crawl(
+  'http://tds.maracoos.org/thredds/MODIS.xml',
+  select=[".*-Agg"],
+  skip=skips
+)
 print c.datasets
 
 [
@@ -128,20 +131,22 @@ You can select data by the THREDDS `modified_time` by using a the `before` and `
 import pytz
 from thredds_crawler.crawl import Crawl
 
-# after
+bf = datetime(2016, 1, 5, 0, 0)
 af = datetime(2015, 12, 30, 0, 0, tzinfo=pytz.utc)
-c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2015/catalog.xml", after=af)
+url = 'http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2016/catalog.xml'
+
+# after
+c = Crawl(url, after=af)
 assert len(c.datasets) == 3
 
 # before
-bf = datetime(2016, 1, 5, 0, 0)
-c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2016/catalog.xml", before=bf)
+c = Crawl(url, before=bf)
 assert len(c.datasets) == 3
 
 # both
 af = datetime(2016, 1, 20, 0, 0)
 bf = datetime(2016, 2, 1, 0, 0)
-c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2016/catalog.xml", before=bf, after=af)
+c = Crawl(url, before=bf, after=af)
 assert len(c.datasets) == 11
 ```
 
@@ -153,7 +158,12 @@ You can pass in a `debug=True` parameter to Crawl to log to STDOUT what is actua
 ```python
 from thredds_crawler.crawl import Crawl
 skips = Crawl.SKIPS + [".*-Day-Aggregation"]
-c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"], skip=skips, debug=True)
+c = Crawl(
+  'http://tds.maracoos.org/thredds/MODIS.xml',
+  select=['.*-Agg'],
+  skip=skips,
+  debug=True
+)
 
 Crawling: http://tds.maracoos.org/thredds/MODIS.xml
 Skipping catalogRef based on 'skips'.  Title: MODIS Individual Files
@@ -189,7 +199,7 @@ You can get some basic information about a LeafDataset, including the services a
 
 ```python
 from thredds_crawler.crawl import Crawl
-c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
+c = Crawl('http://tds.maracoos.org/thredds/MODIS.xml', select=['.*-Agg'])
 dataset = c.datasets[0]
 print dataset.id
 MODIS-Agg
@@ -214,7 +224,7 @@ If you have a list of datasets you can easily return all endpoints of a certain 
 
 ```python
 from thredds_crawler.crawl import Crawl
-c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
+c = Crawl('http://tds.maracoos.org/thredds/MODIS.xml', select=['.*-Agg'])
 urls = [s.get("url") for d in c.datasets for s in d.services if s.get("service").lower() == "opendap"]
 print urls
 [
@@ -236,7 +246,10 @@ This isn't necessarialy the size on disk, because it does not account for `missi
 
 ```python
 from thredds_crawler.crawl import Crawl
-c = Crawl("http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html", select=["MB_.*"])
+c = Crawl(
+  'http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html',
+  select=['MB_.*']
+)
 sizes = [d.size for d in c.datasets]
 print sizes
 [29247.410283999998, 72166.289680000002]
@@ -249,7 +262,7 @@ The entire THREDDS catalog metadata record is saved along with the dataset objec
 
 ```python
 from thredds_crawler.crawl import Crawl
-c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
+c = Crawl('http://tds.maracoos.org/thredds/MODIS.xml', select=['.*-Agg'])
 dataset = c.datasets[0]
 print dataset.metadata.find("{http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0}documentation").text
 Ocean Color data are provided as a service to the broader community, and can be
