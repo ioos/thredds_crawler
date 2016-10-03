@@ -30,3 +30,11 @@ install:
   - conda install -c conda-forge pytest
 
 script: py.test -rx -v
+
+deploy:
+  provider: releases
+  api_key:
+    secure: XAx2aeocMQWn2acXcQ5LevsO977glpvPKOnk/2yafHTMd+VROVy8jZjsVTTwOEhzag2xOYgTyDYbX5PRT2uG2Uz/RPwJA0PbB+9NIiT1gvHZ/sfFEm7AfOQ257I2IL72ZGUuSZoa0I1pZnIFaew84FZGQ/jsNtfWZzo1veXI6A0=
+  on:
+    tags: true
+    repo: ioos/thredds_crawler
