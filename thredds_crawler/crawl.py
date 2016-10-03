@@ -1,4 +1,3 @@
-from thredds_crawler.etree import etree
 try:
     import urlparse
     from urllib import quote_plus
@@ -11,6 +10,7 @@ import sys
 import re
 from datetime import datetime
 import pytz
+from lxml import etree
 from thredds_crawler.utils import construct_url
 from dateutil.parser import parse
 import multiprocessing as mp
