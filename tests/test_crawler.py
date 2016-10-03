@@ -71,3 +71,23 @@ class CrawlerTest(unittest.TestCase):
     def test_ssl(self):
         c = Crawl("https://opendap.co-ops.nos.noaa.gov/thredds/catalog/NOAA/DBOFS/MODELS/201501/catalog.xml", debug=True)
         assert len(c.datasets) > 0
+
+    def test_unidata_parse(self):
+        selects = [".*Best.*"]
+        skips   = Crawl.SKIPS  + [".*grib2", ".*grib1", ".*GrbF.*", ".*ncx2",
+                                  "Radar Data", "Station Data",
+                                  "Point Feature Collections", "Satellite Data",
+                                  "Unidata NEXRAD Composites \(GINI\)",
+                                  "Unidata case studies",
+                                  ".*Reflectivity-[0-9]{8}"]
+        c = Crawl(
+            'http://thredds.ucar.edu/thredds/catalog.xml',
+            select=selects,
+            skip=skips,
+            debug=True
+        )
+
+        assert len(c.datasets) > 0
+
+        isos = [(d.id, s.get("url")) for d in c.datasets for s in d.services if s.get("service").lower() == "iso"]
+        assert len(isos) > 0
