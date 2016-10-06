@@ -1,4 +1,3 @@
-from thredds_crawler.etree import etree
 try:
     import urlparse
     from urllib import quote_plus
@@ -6,19 +5,22 @@ except ImportError:
     from urllib import parse as urlparse
     from urllib.parse import quote_plus
 import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import os
 import sys
 import re
+import logging
 from datetime import datetime
 import pytz
+from lxml import etree
 from thredds_crawler.utils import construct_url
 from dateutil.parser import parse
 import multiprocessing as mp
 
 INV_NS = "http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
 XLINK_NS = "http://www.w3.org/1999/xlink"
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-import logging
 try:
     # Python >= 2.7
     from logging import NullHandler
@@ -27,36 +29,37 @@ except ImportError:
     class NullHandler(logging.Handler):
         def emit(self, record):
             pass
-logger = logging.getLogger("thredds_crawler")
-logger.addHandler(NullHandler())
+logger = logging.getLogger(__name__)
 
 
-def request_xml(url):
+def request_xml(url, auth=None):
     '''
     Returns an etree.XMLRoot object loaded from the url
     :param str url: URL for the resource to load as an XML
     '''
     try:
-        r = requests.get(url, verify=False)
+        r = requests.get(url, auth=auth, verify=False)
         return r.text.encode('utf-8')
     except BaseException:
         logger.error("Skipping %s (error parsing the XML)" % url)
     return
 
 
-def make_leaf(url):
-    return LeafDataset(url)
+def make_leaf(url, auth):
+    return LeafDataset(url, auth=auth)
 
 
 class Crawl(object):
 
     SKIPS = [".*files.*", ".*Individual Files.*", ".*File_Access.*", ".*Forecast Model Run.*", ".*Constant Forecast Offset.*", ".*Constant Forecast Date.*"]
 
-    def __init__(self, catalog_url, select=None, skip=None, before=None, after=None, debug=None, workers=4):
+    def __init__(self, catalog_url, select=None, skip=None, before=None, after=None, debug=None, workers=None, auth=None):
         """
-        select: a list of dataset IDs. Python regex supported.
-        skip:   list of dataset names and/or a catalogRef titles.  Python regex supported.
+        :param select list: Dataset IDs. Python regex supported.
+        :param list skip: Dataset names and/or a catalogRef titles. Python regex supported.
+        :param requests.auth.AuthBase auth: requets auth object to use
         """
+        workers = workers or 4
         self.pool = mp.Pool(processes=workers)
 
         if debug is True:
@@ -66,6 +69,8 @@ class Crawl(object):
             formatter = logging.Formatter('%(asctime)s - [%(levelname)s] %(message)s')
             ch.setFormatter(formatter)
             logger.addHandler(ch)
+        else:
+            logger.addHandler(NullHandler())
 
         # Only process these dataset IDs
         if select is not None:
@@ -102,9 +107,9 @@ class Crawl(object):
 
         self.visited  = []
         datasets = []
-        urls = list(self._run(url=catalog_url))
+        urls = list(self._run(url=catalog_url, auth=auth))
 
-        jobs = [self.pool.apply_async(make_leaf, args=(url,)) for url in urls]
+        jobs = [self.pool.apply_async(make_leaf, args=(url, auth)) for url in urls]
         datasets = [j.get() for j in jobs]
 
         self.datasets = [ x for x in datasets if x.id is not None ]
@@ -182,11 +187,12 @@ class Crawl(object):
             references.append(construct_url(url, ref.get("{%s}href" % XLINK_NS)))
         return references
 
-    def _run(self, url):
+    def _run(self, url, auth):
         '''
         Performs a multiprocess depth-first-search of the catalog references
         and yields a URL for each leaf dataset found
         :param str url: URL for the current catalog
+        :param requests.auth.AuthBase auth: requets auth object to use
         '''
         if url in self.visited:
             logger.debug("Skipping %s (already crawled)" % url)
@@ -197,7 +203,7 @@ class Crawl(object):
         url = self._get_catalog_url(url)
 
         # Get an etree object
-        xml_content = request_xml(url)
+        xml_content = request_xml(url, auth)
         for ds in self._build_catalog(url, xml_content):
             yield ds
 
@@ -229,7 +235,7 @@ class Crawl(object):
 
 
 class LeafDataset(object):
-    def __init__(self, dataset_url):
+    def __init__(self, dataset_url, auth=None):
 
         self.services    = []
         self.id          = None
@@ -239,55 +245,60 @@ class LeafDataset(object):
         self.data_size   = None
 
         # Get an etree object
-        r = requests.get(dataset_url, verify=False)
+        r = requests.get(dataset_url, auth=auth, verify=False)
         try:
             tree = etree.XML(r.text.encode('utf-8'))
         except etree.XMLSyntaxError:
             logger.error("Error procesing %s, invalid XML" % dataset_url)
         else:
-            dataset = tree.find("{%s}dataset" % INV_NS)
-            self.id = dataset.get("ID")
-            self.name = dataset.get("name")
-            self.metadata = dataset.find("{%s}metadata" % INV_NS)
-            self.catalog_url = dataset_url.split("?")[0]
+            try:
+                dataset = tree.find("{%s}dataset" % INV_NS)
+                self.id = dataset.get("ID")
+                self.name = dataset.get("name")
+                self.metadata = dataset.find("{%s}metadata" % INV_NS)
+                self.catalog_url = dataset_url.split("?")[0]
 
-            # Data Size - http://www.unidata.ucar.edu/software/thredds/current/tds/catalog/InvCatalogSpec.html#dataSize
-            data_size = dataset.find("{%s}dataSize" % INV_NS)
-            if data_size is not None:
-                self.data_size = float(data_size.text)
-                data_units = data_size.get('units')
-                # Convert to MB
-                if data_units == "bytes":
-                    self.data_size *= 1e-6
-                elif data_units == "Kbytes":
-                    self.data_size *= 0.001
-                elif data_units == "Gbytes":
-                    self.data_size /= 0.001
-                elif data_units == "Tbytes":
-                    self.data_size /= 1e-6
+                # Data Size - http://www.unidata.ucar.edu/software/thredds/current/tds/catalog/InvCatalogSpec.html#dataSize
+                data_size = dataset.find("{%s}dataSize" % INV_NS)
+                if data_size is not None:
+                    self.data_size = float(data_size.text)
+                    data_units = data_size.get('units')
+                    # Convert to MB
+                    if data_units == "bytes":
+                        self.data_size *= 1e-6
+                    elif data_units == "Kbytes":
+                        self.data_size *= 0.001
+                    elif data_units == "Gbytes":
+                        self.data_size /= 0.001
+                    elif data_units == "Tbytes":
+                        self.data_size /= 1e-6
 
-            # Services
-            service_tag = dataset.find("{%s}serviceName" % INV_NS)
-            if service_tag is None:
-                service_tag = self.metadata.find("{%s}serviceName" % INV_NS)
-            service_name = service_tag.text
+                # Services
+                service_tag = dataset.find("{%s}serviceName" % INV_NS)
+                if service_tag is None:
+                    service_tag = self.metadata.find("{%s}serviceName" % INV_NS)
+                    if service_tag is None:
+                        raise ValueError("No serviceName definition found!")
+                service_name = service_tag.text
 
-            for service in tree.findall(".//{%s}service[@name='%s']" % (INV_NS, service_name)):
-                if service.get("serviceType") == "Compound":
-                    for s in service.findall("{%s}service" % INV_NS):
-                        url = construct_url(dataset_url, s.get('base')) + dataset.get("urlPath")
-                        if s.get("suffix") is not None:
-                            url += s.get("suffix")
+                for service in tree.findall(".//{%s}service[@name='%s']" % (INV_NS, service_name)):
+                    if service.get("serviceType") == "Compound":
+                        for s in service.findall("{%s}service" % INV_NS):
+                            url = construct_url(dataset_url, s.get('base')) + dataset.get("urlPath")
+                            if s.get("suffix") is not None:
+                                url += s.get("suffix")
+                            # ISO like services need additional parameters
+                            if s.get('name') in ["iso", "ncml", "uddc"]:
+                                url += "?dataset=%s&catalog=%s" % (self.id, quote_plus(self.catalog_url))
+                            self.services.append( {'name' : s.get('name'), 'service' : s.get('serviceType'), 'url' : url } )
+                    else:
+                        url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix", "")
                         # ISO like services need additional parameters
-                        if s.get('name') in ["iso", "ncml", "uddc"]:
+                        if service.get('name') in ["iso", "ncml", "uddc"]:
                             url += "?dataset=%s&catalog=%s" % (self.id, quote_plus(self.catalog_url))
-                        self.services.append( {'name' : s.get('name'), 'service' : s.get('serviceType'), 'url' : url } )
-                else:
-                    url = construct_url(dataset_url, service.get('base')) + dataset.get("urlPath") + service.get("suffix", "")
-                    # ISO like services need additional parameters
-                    if service.get('name') in ["iso", "ncml", "uddc"]:
-                        url += "?dataset=%s&catalog=%s" % (self.id, quote_plus(self.catalog_url))
-                    self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
+                        self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
+            except BaseException as e:
+                logger.error('Could not process {}. {}.'.format(dataset_url, e))
 
     @property
     def size(self):
