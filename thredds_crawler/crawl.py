@@ -298,7 +298,7 @@ class LeafDataset(object):
                             url += "?dataset=%s&catalog=%s" % (self.id, quote_plus(self.catalog_url))
                         self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
             except BaseException as e:
-                logger.error('Could not process {}. {}.'.format(dataset_url, e))
+                logger.exception('Could not process {}. {}.'.format(dataset_url, e))
 
     @property
     def size(self):
