@@ -62,7 +62,7 @@ class CrawlerTest(unittest.TestCase):
         assert len(c.datasets) == 3
 
         # before
-        bf = datetime(2016, 1, 5, 0, 0)
+        bf = datetime(2016, 1, 8, 0, 0)
         c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2016/catalog.xml", before=bf)
         assert len(c.datasets) == 3
 
