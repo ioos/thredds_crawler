@@ -51,7 +51,14 @@ def make_leaf(url, auth):
 
 class Crawl(object):
 
-    SKIPS = [".*files.*", ".*Individual Files.*", ".*File_Access.*", ".*Forecast Model Run.*", ".*Constant Forecast Offset.*", ".*Constant Forecast Date.*"]
+    SKIPS = [
+        '.*files.*',
+        '.*Individual Files.*',
+        '.*File_Access.*',
+        '.*Forecast Model Run.*',
+        '.*Constant Forecast Offset.*',
+        '.*Constant Forecast Date.*'
+    ]
 
     def __init__(self, catalog_url, select=None, skip=None, before=None, after=None, debug=None, workers=None, auth=None):
         """
