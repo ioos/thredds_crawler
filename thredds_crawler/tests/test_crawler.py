@@ -94,3 +94,16 @@ class CrawlerTest(unittest.TestCase):
 
         isos = [(d.id, s.get("url")) for d in c.datasets for s in d.services if s.get("service").lower() == "iso"]
         assert len(isos) > 0
+
+    def test_coawst_parse(self):
+        selects = ['.*\.ncd']
+        skips   = Crawl.SKIPS + ['.*MATLAB.*']
+        c = Crawl(
+            'http://gamone.whoi.edu/thredds/catalog/coawst_4/use/fmrc/catalog.xml',
+            select=selects,
+            skip=skips
+        )
+
+        assert len(c.datasets) > 0
+        isos = [(d.id, s.get("url")) for d in c.datasets for s in d.services if s.get("service").lower() == "iso"]
+        assert len(isos) > 0

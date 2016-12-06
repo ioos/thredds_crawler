@@ -283,12 +283,17 @@ class LeafDataset(object):
                 # Services
                 service_tag = dataset.find("{%s}serviceName" % INV_NS)
                 if service_tag is None:
-                    service_tag = self.metadata.find("{%s}serviceName" % INV_NS)
-                    if service_tag is None:
-                        raise ValueError("No serviceName definition found!")
-                service_name = service_tag.text
+                    if self.metadata is not None:
+                        service_tag = self.metadata.find("{%s}serviceName" % INV_NS)
 
-                for service in tree.findall(".//{%s}service[@name='%s']" % (INV_NS, service_name)):
+                if service_tag is None:
+                    # Use services found in the file. FMRC aggs do this.
+                    services = tree.findall(".//{%s}service[@serviceType='Compound']" % INV_NS)
+                else:
+                    # Use specific named services
+                    services = tree.findall(".//{%s}service[@name='%s']" % (INV_NS, service_tag.text))
+
+                for service in services:
                     if service.get("serviceType") == "Compound":
                         for s in service.findall("{%s}service" % INV_NS):
                             url = construct_url(dataset_url, s.get('base')) + dataset.get("urlPath")
