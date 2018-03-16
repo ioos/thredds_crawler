@@ -119,10 +119,16 @@ class Crawl(object):
         jobs = [self.pool.apply_async(make_leaf, args=(url, auth)) for url in urls]
         datasets = [j.get() for j in jobs]
 
-        self.datasets = [ x for x in datasets if x.id is not None ]
-
         self.pool.close()
         self.pool.join()
+
+        datasets = [ x for x in datasets if x.id is not None ]
+        # Load the metadata back into an Element object
+        for d in datasets:
+            if d.metadata:
+                d.metadata = etree.fromstring(d.metadata)
+
+        self.datasets = datasets
 
     def _get_catalog_url(self, url):
         '''
@@ -222,7 +228,7 @@ class Crawl(object):
         '''
         try:
             tree = etree.XML(xml_content)
-        except:
+        except BaseException:
             return
 
         # Get a list of URLs
@@ -247,7 +253,6 @@ class LeafDataset(object):
         self.services    = []
         self.id          = None
         self.name        = None
-        self.metadata    = None
         self.catalog_url = None
         self.data_size   = None
 
@@ -262,7 +267,7 @@ class LeafDataset(object):
                 dataset = tree.find("{%s}dataset" % INV_NS)
                 self.id = dataset.get("ID")
                 self.name = dataset.get("name")
-                self.metadata = dataset.find("{%s}metadata" % INV_NS)
+                metadata = dataset.find("{%s}metadata" % INV_NS)
                 self.catalog_url = dataset_url.split("?")[0]
 
                 # Data Size - http://www.unidata.ucar.edu/software/thredds/current/tds/catalog/InvCatalogSpec.html#dataSize
@@ -283,8 +288,8 @@ class LeafDataset(object):
                 # Services
                 service_tag = dataset.find("{%s}serviceName" % INV_NS)
                 if service_tag is None:
-                    if self.metadata is not None:
-                        service_tag = self.metadata.find("{%s}serviceName" % INV_NS)
+                    if metadata is not None:
+                        service_tag = metadata.find("{%s}serviceName" % INV_NS)
 
                 if service_tag is None:
                     # Use services found in the file. FMRC aggs do this.
@@ -309,6 +314,12 @@ class LeafDataset(object):
                         if service.get('name') in ["iso", "ncml", "uddc"]:
                             url += "?dataset=%s&catalog=%s" % (self.id, quote_plus(self.catalog_url))
                         self.services.append( {'name' : service.get('name'), 'service' : service.get('serviceType'), 'url' : url } )
+
+                # Element objects are not pickable to save as a string
+                try:
+                    self.metadata = etree.tostring(metadata)
+                except TypeError:
+                    self.metadata = None
             except BaseException as e:
                 logger.exception('Could not process {}. {}.'.format(dataset_url, e))
 
