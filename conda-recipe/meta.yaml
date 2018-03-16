@@ -1,6 +1,6 @@
 package:
     name: thredds_crawler
-    version: "1.5.3"
+    version: "1.5.4"
 
 source:
     path: ../
