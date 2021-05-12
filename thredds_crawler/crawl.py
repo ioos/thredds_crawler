@@ -255,7 +255,8 @@ class LeafDataset(object):
         self.name        = None
         self.catalog_url = None
         self.data_size   = None
-
+        self.date_modified = None
+        
         # Get an etree object
         r = requests.get(dataset_url, auth=auth, verify=False)
         try:
@@ -269,6 +270,13 @@ class LeafDataset(object):
                 self.name = dataset.get("name")
                 metadata = dataset.find("{%s}metadata" % INV_NS)
                 self.catalog_url = dataset_url.split("?")[0]
+                
+                #Date modified
+                date_modified = dataset.find("{%s}date" % INV_NS)                
+                if date_modified is not None:
+                    date_type = date_modified.get('type')
+                    if date_type=="modified":
+                        self.date_modified = date_modified.text
 
                 # Data Size - http://www.unidata.ucar.edu/software/thredds/current/tds/catalog/InvCatalogSpec.html#dataSize
                 data_size = dataset.find("{%s}dataSize" % INV_NS)
@@ -322,6 +330,24 @@ class LeafDataset(object):
                     self.metadata = None
             except BaseException as e:
                 logger.exception('Could not process {}. {}.'.format(dataset_url, e))
+
+    @property
+    def datemodified(self):
+        if self.date_modified is not None:
+            return self.date_modified
+        try:
+            dap_endpoint = next(s.get("url") for s in self.services if s.get("service").lower() == "opendap")
+            # Get date_modified from DDS (global attributes)
+            try:
+                import netCDF4
+                nc = netCDF4.Dataset(dap_endpoint)
+                if "date_modified" in nc.ncattrs():
+                    return nc.getncattr("date_modified")
+            except ImportError:
+                logger.error("The python-netcdf4 library is required for computing the size of this dataset.")
+                return None
+        except:
+            return None
 
     @property
     def size(self):
