@@ -38,7 +38,7 @@ def request_xml(url, auth=None):
     :param str url: URL for the resource to load as an XML
     '''
     try:
-        r = requests.get(url, auth=auth, verify=False)
+        r = requests.get(url, auth=auth, verify=False, headers={"Connection": "close"})
         return r.text.encode('utf-8')
     except BaseException:
         logger.error("Skipping %s (error parsing the XML)" % url)
@@ -257,7 +257,7 @@ class LeafDataset(object):
         self.data_size   = None
 
         # Get an etree object
-        r = requests.get(dataset_url, auth=auth, verify=False)
+        r = requests.get(dataset_url, auth=auth, verify=False, headers={"Connection": "close"})
         try:
             tree = etree.XML(r.text.encode('utf-8'))
         except etree.XMLSyntaxError:
@@ -337,6 +337,7 @@ class LeafDataset(object):
                 for vname in nc.variables:
                     var = nc.variables.get(vname)
                     bites += var.dtype.itemsize * var.size
+                nc.close()
                 return bites * 1e-6  # Megabytes
             except ImportError:
                 logger.error("The python-netcdf4 library is required for computing the size of this dataset.")
