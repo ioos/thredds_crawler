@@ -337,6 +337,7 @@ class LeafDataset(object):
                 for vname in nc.variables:
                     var = nc.variables.get(vname)
                     bites += var.dtype.itemsize * var.size
+                nc.close()
                 return bites * 1e-6  # Megabytes
             except ImportError:
                 logger.error("The python-netcdf4 library is required for computing the size of this dataset.")
