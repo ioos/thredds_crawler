@@ -59,15 +59,37 @@ class Crawl(object):
         '.*Constant Forecast Offset.*',
         '.*Constant Forecast Date.*'
     ]
+    def get_transaction_status(self,user,host,port,database,password):
+        # a function for finding the final status of connection to the PostGreSql
+        from psycopg2 import extensions, connect, InterfaceError, Error
+        
+        conn = connect(user=user,
+            password=password,
+            host=host,
+            port=port,
+            database=database)
+        # evaluate the status for the PostgreSQL connection
+        if conn.status == extensions.STATUS_READY:
+            print ("psycopg2 status #1: Connection is ready for a transaction.")
 
-    def __init__(self, catalog_url, select=None, skip=None, before=None, after=None, debug=None, workers=None, auth=None):
+        elif conn.status == extensions.STATUS_BEGIN:
+            print ("psycopg2 status #2: An open transaction is in process.")
+
+        elif conn.status == extensions.STATUS_IN_TRANSACTION:
+            print ("psycopg2 status #3: An exception has occured.")
+            print ("Use tpc_commit() or tpc_rollback() to end transaction")
+
+        elif conn.status == extensions.STATUS_PREPARED:
+            print ("psycopg2 status #4:A transcation is in the 2nd phase of the process.")
+        return conn
+    def __init__(self, catalog_url, select=None, skip=None, before=None, after=None, debug=None, workers=None, auth=None, conn_database=None):
         """
         :param select list: Dataset IDs. Python regex supported.
         :param list skip: Dataset names and/or a catalogRef titles. Python regex supported.
         :param requests.auth.AuthBase auth: requets auth object to use
         """
         workers = workers or 4
-        self.pool = mp.Pool(processes=workers)
+        self.pool = mp.get_context('fork').Pool(processes=workers)
 
         if debug is True:
             logger.setLevel(logging.DEBUG)
@@ -129,7 +151,40 @@ class Crawl(object):
                 d.metadata = etree.fromstring(d.metadata)
 
         self.datasets = datasets
+        if conn_database is not None:
+            from psycopg2 import extensions, connect, InterfaceError, Error
+            conn = self.get_transaction_status(conn_database[0],conn_database[1],conn_database[2],conn_database[3],conn_database[4])
+            cursor = conn.cursor()
+            cursor.execute("ROLLBACK;")
+            try:
+                cursor.execute('CREATE TABLE import_iso_address (dataset_id VARCHAR ( 2500 ) \
+                    ,dataset_name VARCHAR (2350 ),dataset_urlpath VARCHAR (2350 ) \
+                        ,dataset_url VARCHAR ( 2500 ) UNIQUE NOT NULL );')                                            
+            except:
+                pass
+            count = 0
+            postgres_delete_queries = " DELETE FROM import_iso_address;"
+            cursor.execute(postgres_delete_queries)
+            conn.commit()     
+            for d in self.datasets:
+                for s in d.services:
+                    if s.get("service").lower() == conn_database[5]:
+                        xml_url = s.get("url")
+                        postgres_insert_query = """ INSERT INTO import_iso_address (dataset_id,\
+                                dataset_name,dataset_urlpath,dataset_url) VALUES (%s,%s,%s,%s)"""
+                        try:
+                            cursor.execute("ROLLBACK;")
+                            record_to_insert = (d.id, d.name,d.urlpath,xml_url)
 
+                            cursor.execute(postgres_insert_query, record_to_insert)
+                            conn.commit()
+                            
+                            count = count + cursor.rowcount
+                        except:
+                            pass                        
+            print(count, "Record inserted successfully into import_iso_address table")
+            cursor.close()
+            conn.close()
     def _get_catalog_url(self, url):
         '''
         Returns the appropriate catalog URL by replacing html with xml in some
@@ -253,6 +308,7 @@ class LeafDataset(object):
         self.services    = []
         self.id          = None
         self.name        = None
+        self.urlpath     = None        
         self.catalog_url = None
         self.data_size   = None
 
@@ -267,6 +323,7 @@ class LeafDataset(object):
                 dataset = tree.find("{%s}dataset" % INV_NS)
                 self.id = dataset.get("ID")
                 self.name = dataset.get("name")
+                self.urlpath = dataset.get("urlPath").removesuffix(self.name)
                 metadata = dataset.find("{%s}metadata" % INV_NS)
                 self.catalog_url = dataset_url.split("?")[0]
 
@@ -345,4 +402,4 @@ class LeafDataset(object):
             return None  # We can't calculate
 
     def __repr__(self):
-        return "<LeafDataset id: %s, name: %s, services: %s>" % (self.id, self.name, str([s.get("service") for s in self.services]))
+        return "<LeafDataset id: %s, name: %s, urlpath: %s, services: %s>" % (self.id, self.name, self.urlpath, str([s.get("service") for s in self.services]))

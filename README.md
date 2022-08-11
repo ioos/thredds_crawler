@@ -7,13 +7,25 @@ A simple crawler/parser for THREDDS catalogs
 ## Installation
 
 ```bash
-pip install thredds_crawler
+git clone -b conn_sql https://github.com/ioos/thredds_crawler.git
+cd thredds_crawler
+python setup.py install
 ```
 
-or
-
+PostGreSQL installation (optional)
 ```bash
-conda install -c conda-forge thredds_crawler
+brew install postgresql
+```
+
+For running and creating databse in the PostGreSQL, you need to do according to the following lines:
+```bash
+brew install postgresql
+brew services start postgresql
+export PGPORT=<port>
+export PGHOST=<host>
+export PGUSER=<username>
+export PGDB=<name of database>
+createdb -h $PGHOST -p $PGPORT -U $PGUSER $PGDB
 ```
 
 ## Usage
@@ -164,6 +176,18 @@ c = Crawl(
   skip=Crawl.SKIPS,
   auth=auth
 )
+```
+
+### Connecting to a database
+
+The output of the harvesting process can be easily imported into a database. The purpose of this is to compare two consecutive scans to identify duplicated metadata in each scan.
+
+```python
+from thredds_crawler.crawl import Crawl
+c = Crawl(
+  'http://tds.maracoos.org/thredds/MODIS.xml',
+  conn_database=["username","host","port","database_name","password","type of webservices for harvesting (e.g iso or opendap)"]
+  )
 ```
 
 
