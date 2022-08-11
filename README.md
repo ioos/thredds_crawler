@@ -184,8 +184,6 @@ The output of the harvesting process can be easily imported into a database. The
 
 ```python
 from thredds_crawler.crawl import Crawl
-
-from thredds_crawler.crawl import Crawl
 c = Crawl(
   'http://tds.maracoos.org/thredds/MODIS.xml',
   conn_database=["username","host","port","database_name","password","type of webservices for harvesting (e.g iso or opendap)"]
