@@ -21,12 +21,14 @@ conda install thredds_crawler --channel conda-forge
 
 ### Select
 
-You can select datasets based on their THREDDS ID using the "select" parameter.  Python regex is supported.
+You can select datasets based on their THREDDS ID using the "select" parameter.
+Python regex is supported.
 
 ```python
 from thredds_crawler.crawl import Crawl
+
 c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
-print c.datasets
+print(c.datasets)
 [
   <LeafDataset id: MODIS-Agg, name: MODIS-Complete Aggregation, services: ["OPENDAP", "ISO"]>,
   <LeafDataset id: MODIS-2009-Agg, name: MODIS-2009 Aggregation, services: ["OPENDAP", "ISO"]>,
@@ -42,7 +44,8 @@ print c.datasets
 
 ### Skip
 
-You can skip datasets based on their `name` and catalogRefs based on their `xlink:title`.  By default, the crawler uses some common regular expressions to skip lists of thousands upon thousands of individual files that are part of aggregations or FMRCs:
+You can skip datasets based on their `name` and catalogRefs based on their `xlink:title`.
+By default, the crawler uses some common regular expressions to skip lists of thousands upon thousands of individual files that are part of aggregations or FMRCs:
 
 *  `.*files.*`
 *  `.*Individual Files.*`
@@ -57,7 +60,8 @@ You can access the default `skip` list through the Crawl.SKIPS class variable
 
 ```python
 from thredds_crawler.crawl import Crawl
-print Crawl.SKIPS
+
+print(Crawl.SKIPS)
 [
   ".*files.*",
   ".*Individual Files.*",
@@ -72,13 +76,14 @@ If you need to remove or add a new `skip`, it is **strongly** encouraged you use
 
 ```python
 from thredds_crawler.crawl import Crawl
+
 skips = Crawl.SKIPS + [".*-Day-Aggregation"]
 c = Crawl(
   "http://tds.maracoos.org/thredds/MODIS.xml",
   select=[".*-Agg"],
   skip=skips
 )
-print c.datasets
+print(c.datasets)
 
 [
   <LeafDataset id: MODIS-Agg, name: MODIS-Complete Aggregation, services: ["OPENDAP", "ISO"]>,
@@ -104,7 +109,7 @@ def timeit(name):
     startTime = time.time()
     yield
     elapsedTime = time.time() - startTime
-    print("[{}] finished in {} ms".format(name, int(elapsedTime * 1000)))
+    print(f"[{name}] finished in {int(elapsedTime * 1000)} ms")
 
 for x in range(1, 11):
     with timeit("{} workers".format(x)):
@@ -204,6 +209,7 @@ logger, **do not** include `debug=True` when initializing the Crawl object.
 
 ```python
 import logging
+
 crawl_log = logging.getLogger("thredds_crawler")
 crawl_log.setLevel(logging.WARNING)
 ```
@@ -215,13 +221,16 @@ You can get some basic information about a LeafDataset, including the services a
 
 ```python
 from thredds_crawler.crawl import Crawl
+
 c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
 dataset = c.datasets[0]
-print dataset.id
+print(dataset.id)
 MODIS-Agg
-print dataset.name
+
+print(dataset.name)
 MODIS-Complete Aggregation
-print dataset.services
+
+print(dataset.services)
 [
   {
     "url": "http://tds.maracoos.org/thredds/dodsC/MODIS-Agg.nc",
@@ -240,9 +249,10 @@ If you have a list of datasets you can easily return all endpoints of a certain 
 
 ```python
 from thredds_crawler.crawl import Crawl
+
 c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
 urls = [s.get("url") for d in c.datasets for s in d.services if s.get("service").lower() == "opendap"]
-print urls
+print(urls)
 [
   "http://tds.maracoos.org/thredds/dodsC/MODIS-Agg.nc",
   "http://tds.maracoos.org/thredds/dodsC/MODIS-2009-Agg.nc",
@@ -262,12 +272,13 @@ This isn"t necessarialy the size on disk, because it does not account for `missi
 
 ```python
 from thredds_crawler.crawl import Crawl
+
 c = Crawl(
   "http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html",
   select=["MB_.*"]
 )
 sizes = [d.size for d in c.datasets]
-print sizes
+print(sizes)
 [29247.410283999998, 72166.289680000002]
 ```
 
@@ -278,9 +289,11 @@ The entire THREDDS catalog metadata record is saved along with the dataset objec
 
 ```python
 from thredds_crawler.crawl import Crawl
+
 c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
 dataset = c.datasets[0]
-print dataset.metadata.find("{http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0}documentation").text
+
+print(dataset.metadata.find("{http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0}documentation").text)
 Ocean Color data are provided as a service to the broader community, and can be
 influenced by sensor degradation and or algorithm changes. We make efforts to keep
 this dataset updated and calibrated. The products in these files are experimental.
@@ -301,6 +314,7 @@ from thredds_crawler.crawl import Crawl
 
 import logging
 import logging.handlers
+
 logger = logging.getLogger("thredds_crawler")
 fh = logging.handlers.RotatingFileHandler("/var/log/iso_harvest/iso_harvest.log", maxBytes=1024*1024*10, backupCount=5)
 fh.setLevel(logging.DEBUG)
@@ -313,7 +327,7 @@ logger.addHandler(fh)
 logger.addHandler(ch)
 logger.setLevel(logging.DEBUG)
 
-SAVE_DIR="/srv/http/iso"
+SAVE_DIR = "/srv/http/iso"
 
 THREDDS_SERVERS = {
     "aoos":      "http://thredds.axiomalaska.com/thredds/catalogs/aoos.html",
