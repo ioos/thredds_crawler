@@ -13,7 +13,7 @@ pip install thredds_crawler
 or
 
 ```bash
-conda install -c conda-forge thredds_crawler
+conda install thredds_crawler --channel conda-forge
 ```
 
 ## Usage
@@ -21,22 +21,22 @@ conda install -c conda-forge thredds_crawler
 
 ### Select
 
-You can select datasets based on their THREDDS ID using the 'select' parameter.  Python regex is supported.
+You can select datasets based on their THREDDS ID using the "select" parameter.  Python regex is supported.
 
 ```python
 from thredds_crawler.crawl import Crawl
-c = Crawl('http://tds.maracoos.org/thredds/MODIS.xml', select=[".*-Agg"])
+c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
 print c.datasets
 [
-  <LeafDataset id: MODIS-Agg, name: MODIS-Complete Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-2009-Agg, name: MODIS-2009 Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-2010-Agg, name: MODIS-2010 Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-2011-Agg, name: MODIS-2011 Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-2012-Agg, name: MODIS-2012 Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-2013-Agg, name: MODIS-2013 Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-One-Agg, name: 1-Day-Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-Three-Agg, name: 3-Day-Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-Seven-Agg, name: 7-Day-Aggregation, services: ['OPENDAP', 'ISO']>
+  <LeafDataset id: MODIS-Agg, name: MODIS-Complete Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-2009-Agg, name: MODIS-2009 Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-2010-Agg, name: MODIS-2010 Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-2011-Agg, name: MODIS-2011 Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-2012-Agg, name: MODIS-2012 Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-2013-Agg, name: MODIS-2013 Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-One-Agg, name: 1-Day-Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-Three-Agg, name: 3-Day-Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-Seven-Agg, name: 7-Day-Aggregation, services: ["OPENDAP", "ISO"]>
 ]
 ```
 
@@ -59,12 +59,12 @@ You can access the default `skip` list through the Crawl.SKIPS class variable
 from thredds_crawler.crawl import Crawl
 print Crawl.SKIPS
 [
-  '.*files.*',
-  '.*Individual Files.*',
-  '.*File_Access.*',
-  '.*Forecast Model Run.*',
-  '.*Constant Forecast Offset.*',
-  '.*Constant Forecast Date.*'
+  ".*files.*",
+  ".*Individual Files.*",
+  ".*File_Access.*",
+  ".*Forecast Model Run.*",
+  ".*Constant Forecast Offset.*",
+  ".*Constant Forecast Date.*"
 ]
 ```
 
@@ -74,19 +74,19 @@ If you need to remove or add a new `skip`, it is **strongly** encouraged you use
 from thredds_crawler.crawl import Crawl
 skips = Crawl.SKIPS + [".*-Day-Aggregation"]
 c = Crawl(
-  'http://tds.maracoos.org/thredds/MODIS.xml',
+  "http://tds.maracoos.org/thredds/MODIS.xml",
   select=[".*-Agg"],
   skip=skips
 )
 print c.datasets
 
 [
-  <LeafDataset id: MODIS-Agg, name: MODIS-Complete Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-2009-Agg, name: MODIS-2009 Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-2010-Agg, name: MODIS-2010 Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-2011-Agg, name: MODIS-2011 Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-2012-Agg, name: MODIS-2012 Aggregation, services: ['OPENDAP', 'ISO']>,
-  <LeafDataset id: MODIS-2013-Agg, name: MODIS-2013 Aggregation, services: ['OPENDAP', 'ISO']>,
+  <LeafDataset id: MODIS-Agg, name: MODIS-Complete Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-2009-Agg, name: MODIS-2009 Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-2010-Agg, name: MODIS-2010 Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-2011-Agg, name: MODIS-2011 Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-2012-Agg, name: MODIS-2012 Aggregation, services: ["OPENDAP", "ISO"]>,
+  <LeafDataset id: MODIS-2013-Agg, name: MODIS-2013 Aggregation, services: ["OPENDAP", "ISO"]>,
 ]
 ```
 
@@ -104,10 +104,10 @@ def timeit(name):
     startTime = time.time()
     yield
     elapsedTime = time.time() - startTime
-    print('[{}] finished in {} ms'.format(name, int(elapsedTime * 1000)))
+    print("[{}] finished in {} ms".format(name, int(elapsedTime * 1000)))
 
 for x in range(1, 11):
-    with timeit('{} workers'.format(x)):
+    with timeit("{} workers".format(x)):
         Crawl("http://tds.maracoos.org/thredds/MODIS.xml", workers=x)
 
 [1 workers] finished in 872 ms
@@ -125,7 +125,7 @@ for x in range(1, 11):
 
 ### Modified Time
 
-You can select data by the THREDDS `modified_time` by using a the `before` and `after` parameters. Keep in mind that the modified time is only avaiable for individual files hosted in THREDDS (not aggregations).
+You can select data by the THREDDS `modified_time` by using a the `before` and `after` parameters. Keep in mind that the modified time is only available for individual files hosted in THREDDS (not aggregations).
 
 ```python
 import pytz
@@ -133,7 +133,7 @@ from thredds_crawler.crawl import Crawl
 
 bf = datetime(2016, 1, 5, 0, 0)
 af = datetime(2015, 12, 30, 0, 0, tzinfo=pytz.utc)
-url = 'http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2016/catalog.xml'
+url = "http://tds.maracoos.org/thredds/catalog/MODIS-Chesapeake-Salinity/raw/2016/catalog.xml"
 
 # after
 c = Crawl(url, after=af)
@@ -157,10 +157,10 @@ You can pass an auth parameter as needed. It needs to be a [requests compatible 
 
 ```python
 from thredds_crawler.crawl import Crawl
-auth = ('user', 'password')
+auth = ("user", "password")
 c = Crawl(
-  'http://tds.maracoos.org/thredds/MODIS.xml',
-  select=['.*-Agg'],
+  "http://tds.maracoos.org/thredds/MODIS.xml",
+  select=[".*-Agg"],
   skip=Crawl.SKIPS,
   auth=auth
 )
@@ -175,24 +175,24 @@ You can pass in a `debug=True` parameter to Crawl to log to STDOUT what is actua
 from thredds_crawler.crawl import Crawl
 skips = Crawl.SKIPS + [".*-Day-Aggregation"]
 c = Crawl(
-  'http://tds.maracoos.org/thredds/MODIS.xml',
-  select=['.*-Agg'],
+  "http://tds.maracoos.org/thredds/MODIS.xml",
+  select=[".*-Agg"],
   skip=skips,
   debug=True
 )
 
 Crawling: http://tds.maracoos.org/thredds/MODIS.xml
-Skipping catalogRef based on 'skips'.  Title: MODIS Individual Files
-Skipping catalogRef based on 'skips'.  Title: 1-Day Individual Files
-Skipping catalogRef based on 'skips'.  Title: 3-Day Individual Files
-Skipping catalogRef based on 'skips'.  Title: 8-Day Individual Files
+Skipping catalogRef based on "skips".  Title: MODIS Individual Files
+Skipping catalogRef based on "skips".  Title: 1-Day Individual Files
+Skipping catalogRef based on "skips".  Title: 3-Day Individual Files
+Skipping catalogRef based on "skips".  Title: 8-Day Individual Files
 Processing MODIS-Agg
 Processing MODIS-2009-Agg
 Processing MODIS-2010-Agg
 Processing MODIS-2011-Agg
 Processing MODIS-2012-Agg
 Processing MODIS-2013-Agg
-Skipping dataset based on 'skips'.  Name: 1-Day-Aggregation
+Skipping dataset based on "skips".  Name: 1-Day-Aggregation
 ```
 
 
@@ -204,7 +204,7 @@ logger, **do not** include `debug=True` when initializing the Crawl object.
 
 ```python
 import logging
-crawl_log = logging.getLogger('thredds_crawler')
+crawl_log = logging.getLogger("thredds_crawler")
 crawl_log.setLevel(logging.WARNING)
 ```
 
@@ -215,7 +215,7 @@ You can get some basic information about a LeafDataset, including the services a
 
 ```python
 from thredds_crawler.crawl import Crawl
-c = Crawl('http://tds.maracoos.org/thredds/MODIS.xml', select=['.*-Agg'])
+c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
 dataset = c.datasets[0]
 print dataset.id
 MODIS-Agg
@@ -224,14 +224,14 @@ MODIS-Complete Aggregation
 print dataset.services
 [
   {
-    'url': 'http://tds.maracoos.org/thredds/dodsC/MODIS-Agg.nc',
-    'name': 'odap',
-    'service': 'OPENDAP'
+    "url": "http://tds.maracoos.org/thredds/dodsC/MODIS-Agg.nc",
+    "name": "odap",
+    "service": "OPENDAP"
   },
   {
-    'url': 'http://tds.maracoos.org/thredds/iso/MODIS-Agg.nc',
-    'name': 'iso',
-    'service': 'ISO'
+    "url": "http://tds.maracoos.org/thredds/iso/MODIS-Agg.nc",
+    "name": "iso",
+    "service": "ISO"
   }
 ]
 ```
@@ -240,31 +240,31 @@ If you have a list of datasets you can easily return all endpoints of a certain 
 
 ```python
 from thredds_crawler.crawl import Crawl
-c = Crawl('http://tds.maracoos.org/thredds/MODIS.xml', select=['.*-Agg'])
+c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
 urls = [s.get("url") for d in c.datasets for s in d.services if s.get("service").lower() == "opendap"]
 print urls
 [
-  'http://tds.maracoos.org/thredds/dodsC/MODIS-Agg.nc',
-  'http://tds.maracoos.org/thredds/dodsC/MODIS-2009-Agg.nc',
-  'http://tds.maracoos.org/thredds/dodsC/MODIS-2010-Agg.nc',
-  'http://tds.maracoos.org/thredds/dodsC/MODIS-2011-Agg.nc',
-  'http://tds.maracoos.org/thredds/dodsC/MODIS-2012-Agg.nc',
-  'http://tds.maracoos.org/thredds/dodsC/MODIS-2013-Agg.nc',
-  'http://tds.maracoos.org/thredds/dodsC/MODIS-One-Agg.nc',
-  'http://tds.maracoos.org/thredds/dodsC/MODIS-Three-Agg.nc',
-  'http://tds.maracoos.org/thredds/dodsC/MODIS-Seven-Agg.nc'
+  "http://tds.maracoos.org/thredds/dodsC/MODIS-Agg.nc",
+  "http://tds.maracoos.org/thredds/dodsC/MODIS-2009-Agg.nc",
+  "http://tds.maracoos.org/thredds/dodsC/MODIS-2010-Agg.nc",
+  "http://tds.maracoos.org/thredds/dodsC/MODIS-2011-Agg.nc",
+  "http://tds.maracoos.org/thredds/dodsC/MODIS-2012-Agg.nc",
+  "http://tds.maracoos.org/thredds/dodsC/MODIS-2013-Agg.nc",
+  "http://tds.maracoos.org/thredds/dodsC/MODIS-One-Agg.nc",
+  "http://tds.maracoos.org/thredds/dodsC/MODIS-Three-Agg.nc",
+  "http://tds.maracoos.org/thredds/dodsC/MODIS-Seven-Agg.nc"
 ]
 ```
 
-You can also obtain the dataset size.  This returns the size on disk if the informaton is available in the TDS
+You can also obtain the dataset size.  This returns the size on disk if the information is available in the TDS
 catalog.  If it is not available and a DAP endpoint is available, it returns the theoretical size of all of thh variables.
-This isn't necessarialy the size on disk, because it does not account for `missing_value` and `_FillValue` space.
+This isn"t necessarialy the size on disk, because it does not account for `missing_value` and `_FillValue` space.
 
 ```python
 from thredds_crawler.crawl import Crawl
 c = Crawl(
-  'http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html',
-  select=['MB_.*']
+  "http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html",
+  select=["MB_.*"]
 )
 sizes = [d.size for d in c.datasets]
 print sizes
@@ -278,7 +278,7 @@ The entire THREDDS catalog metadata record is saved along with the dataset objec
 
 ```python
 from thredds_crawler.crawl import Crawl
-c = Crawl('http://tds.maracoos.org/thredds/MODIS.xml', select=['.*-Agg'])
+c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
 dataset = c.datasets[0]
 print dataset.metadata.find("{http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0}documentation").text
 Ocean Color data are provided as a service to the broader community, and can be
@@ -301,12 +301,12 @@ from thredds_crawler.crawl import Crawl
 
 import logging
 import logging.handlers
-logger = logging.getLogger('thredds_crawler')
-fh = logging.handlers.RotatingFileHandler('/var/log/iso_harvest/iso_harvest.log', maxBytes=1024*1024*10, backupCount=5)
+logger = logging.getLogger("thredds_crawler")
+fh = logging.handlers.RotatingFileHandler("/var/log/iso_harvest/iso_harvest.log", maxBytes=1024*1024*10, backupCount=5)
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 logger.addHandler(fh)
