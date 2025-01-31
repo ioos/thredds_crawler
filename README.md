@@ -1,6 +1,6 @@
 # thredds_crawler
 
-[![Build Status](https://travis-ci.org/ioos/thredds_crawler.svg?branch=master)](https://travis-ci.org/ioos/thredds_crawler)
+[![Tests](https://github.com/ioos/thredds_crawler/actions/workflows/tests.yml/badge.svg)](https://github.com/ioos/thredds_crawler/actions/workflows/tests.yml)
 
 A simple crawler/parser for THREDDS catalogs
 
