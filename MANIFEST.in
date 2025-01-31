@@ -1,4 +1,16 @@
 include *.txt
 include README.md
-include VERSION
-include LICENSE
+include pyproject.toml
+
+graft thredds_crawler
+
+prune .github
+prune *.egg-info
+prune tests
+
+exclude .coveragerc
+exclude ruff.toml
+exclude .gitignore
+exclude .pre-commit-config.yaml
+exclude *.yml
+exclude thredds_crawler/_version.py

@@ -1,30 +1,39 @@
-import unittest
-from datetime import datetime, timedelta
-
-import pytz
 import logging
+import unittest
 
 from thredds_crawler.crawl import Crawl
-logger = logging.getLogger('thredds_crawler')
+
+logger = logging.getLogger("thredds_crawler")
 logger.setLevel(logging.DEBUG)
 logger.handlers = [logging.StreamHandler()]
 
 
 class CrawlerTest(unittest.TestCase):
     def test_single_dataset(self):
-        c = Crawl("http://tds.maracoos.org/thredds/REALTIME-MODIS.xml", select=["MODIS1"])
+        c = Crawl(
+            "http://tds.maracoos.org/thredds/REALTIME-MODIS.xml",
+            select=["MODIS1"],
+        )
         assert len(c.datasets) == 1
         assert c.datasets[0].id == "MODIS1"
         assert len(c.datasets[0].services) == 1
-        service_names = sorted(map(lambda x: x.get('service'), c.datasets[0].services))
+        service_names = sorted(
+            map(lambda x: x.get("service"), c.datasets[0].services),
+        )
         assert service_names == ["OPENDAP"]
 
     def test_two_datasets(self):
-        c = Crawl("http://tds.maracoos.org/thredds/REALTIME-MODIS.xml", select=["MODIS1", "MODIS3"])
+        c = Crawl(
+            "http://tds.maracoos.org/thredds/REALTIME-MODIS.xml",
+            select=["MODIS1", "MODIS3"],
+        )
         assert len(c.datasets) == 2
 
     def test_regex_selects(self):
-        c = Crawl("http://tds.maracoos.org/thredds/REALTIME-MODIS.xml", select=[".*CHES"])
+        c = Crawl(
+            "http://tds.maracoos.org/thredds/REALTIME-MODIS.xml",
+            select=[".*CHES"],
+        )
         assert len(c.datasets) == 2
 
         # Get all DAP links:
@@ -33,7 +42,10 @@ class CrawlerTest(unittest.TestCase):
 
     def test_regex_skips(self):
         # skip everything
-        c = Crawl("http://tds.maracoos.org/thredds/REALTIME-MODIS.xml", skip=[".*"])
+        c = Crawl(
+            "http://tds.maracoos.org/thredds/REALTIME-MODIS.xml",
+            skip=[".*"],
+        )
         assert len(c.datasets) == 0
 
     def test_iso_links(self):
@@ -43,11 +55,16 @@ class CrawlerTest(unittest.TestCase):
         assert "&catalog=" in isos[0]
 
     def test_dataset_size_using_xml(self):
-        c = Crawl("http://tds.maracoos.org/thredds/catalog/MODIS/2014/1/catalog.xml")
+        c = Crawl(
+            "http://tds.maracoos.org/thredds/catalog/MODIS/2014/1/catalog.xml",
+        )
         self.assertIsNotNone(c.datasets[0].size)
 
     def test_dataset_size_using_dap(self):
-        c = Crawl("http://tds.maracoos.org/thredds/REALTIME-MODIS.xml", select=["MODIS1"])
+        c = Crawl(
+            "http://tds.maracoos.org/thredds/REALTIME-MODIS.xml",
+            select=["MODIS1"],
+        )
         self.assertIsNotNone(c.datasets[0].size)
 
     # def test_modified_time(self):
@@ -73,21 +90,30 @@ class CrawlerTest(unittest.TestCase):
     #     assert len(c.datasets) == 11
 
     def test_ssl(self):
-        c = Crawl("https://opendap.co-ops.nos.noaa.gov/thredds/catalog/NOAA/DBOFS/MODELS/201501/catalog.xml")
+        c = Crawl(
+            "https://opendap.co-ops.nos.noaa.gov/thredds/catalog/NOAA/DBOFS/MODELS/201501/catalog.xml",
+        )
         assert len(c.datasets) > 0
 
     def test_unidata_parse(self):
         selects = [".*Best.*"]
-        skips   = Crawl.SKIPS  + [".*grib2", ".*grib1", ".*GrbF.*", ".*ncx2",
-                                  "Radar Data", "Station Data",
-                                  "Point Feature Collections", "Satellite Data",
-                                  "Unidata NEXRAD Composites \(GINI\)",
-                                  "Unidata case studies",
-                                  ".*Reflectivity-[0-9]{8}"]
+        skips = Crawl.SKIPS + [
+            ".*grib2",
+            ".*grib1",
+            ".*GrbF.*",
+            ".*ncx2",
+            "Radar Data",
+            "Station Data",
+            "Point Feature Collections",
+            "Satellite Data",
+            r"Unidata NEXRAD Composites \(GINI\)",
+            "Unidata case studies",
+            ".*Reflectivity-[0-9]{8}",
+        ]
         c = Crawl(
-            'http://thredds.ucar.edu/thredds/catalog.xml',
+            "http://thredds.ucar.edu/thredds/catalog.xml",
             select=selects,
-            skip=skips
+            skip=skips,
         )
 
         assert len(c.datasets) > 0
@@ -96,12 +122,12 @@ class CrawlerTest(unittest.TestCase):
         assert len(isos) > 0
 
     def test_coawst_parse(self):
-        selects = ['.*\.ncd']
-        skips   = Crawl.SKIPS + ['.*MATLAB.*']
+        selects = [r".*\.ncd"]
+        skips = Crawl.SKIPS + [".*MATLAB.*"]
         c = Crawl(
-            'http://gamone.whoi.edu/thredds/catalog/coawst_4/use/fmrc/catalog.xml',
+            "http://gamone.whoi.edu/thredds/catalog/coawst_4/use/fmrc/catalog.xml",
             select=selects,
-            skip=skips
+            skip=skips,
         )
 
         assert len(c.datasets) > 0

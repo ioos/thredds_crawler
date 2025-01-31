@@ -1,7 +1,8 @@
-*.pyc
 *.egg-info
-dist
-build
+*.pyc
 *.sublime*
 .cache
 __pycache__
+build
+dist
+thredds_crawler/_version.py
