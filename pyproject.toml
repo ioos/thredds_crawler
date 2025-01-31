@@ -7,8 +7,8 @@ requires = [
 ]
 
 [project]
-name = "thredds_crawler"
-description = "Python interface for ERDDAPA Python library for crawling THREDDS servers
+name = "thredds-crawler"
+description = "Python interface for ERDDAPA Python library for crawling THREDDS servers"
 readme = "README.md"
 license = { file = "LICENSE.txt" }
 maintainers = [
