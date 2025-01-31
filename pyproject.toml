@@ -1,0 +1,78 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools>=42",
+  "setuptools-scm",
+  "wheel",
+]
+
+[project]
+name = "thredds_crawler"
+description = "Python interface for ERDDAPA Python library for crawling THREDDS servers
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+maintainers = [
+  { name = "Kyle Wilcox", email = "kyle@axiomdatascience.com" },
+]
+requires-python = ">=3.9"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dynamic = [
+  "dependencies",
+  "version",
+]
+urls.documentation = "https://ioos.github.io/thredds_crawler"
+urls.homepage = "https://github.com/ioos/thredds_crawler"
+urls.repository = "https://github.com/ioos/thredds_crawler"
+
+[tool.setuptools]
+packages = [
+  "thredds_crawler",
+]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+dependencies = { file = [
+  "requirements.txt",
+] }
+
+[tool.setuptools_scm]
+write_to = "thredds_crawler/_version.py"
+write_to_template = "__version__ = '{version}'"
+tag_regex = "^(?P<prefix>v)?(?P<version>[^\\+]+)(?P<suffix>.*)?$"
+
+[tool.check-manifest]
+ignore = [
+  ".coveragerc",
+  "docs",
+  "docs/*",
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  "error:::thredds_crawler.*",
+  "ignore::UserWarning",
+  "ignore::RuntimeWarning",
+]
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = false
+ignore-magic = false
+ignore-semiprivate = false
+ignore-private = false
+ignore-module = false
+fail-under = 85
+exclude = [
+  "docs",
+  "tests",
+]
+verbose = 1
+quiet = false
+color = true
