@@ -25,7 +25,6 @@ classifiers = [
 dynamic = [
   "version",
 ]
-
 dependencies = [
   "lxml",
   "python-dateutil",
@@ -35,11 +34,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "prek",
   "netcdf4",
+  "prek",
   "pytest",
 ]
-
 urls.documentation = "https://ioos.github.io/thredds_crawler"
 urls.homepage = "https://github.com/ioos/thredds_crawler"
 urls.repository = "https://github.com/ioos/thredds_crawler"
