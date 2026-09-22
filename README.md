@@ -63,12 +63,12 @@ from thredds_crawler.crawl import Crawl
 
 print(Crawl.SKIPS)
 [
-  ".*files.*",
-  ".*Individual Files.*",
-  ".*File_Access.*",
-  ".*Forecast Model Run.*",
-  ".*Constant Forecast Offset.*",
-  ".*Constant Forecast Date.*"
+    ".*files.*",
+    ".*Individual Files.*",
+    ".*File_Access.*",
+    ".*Forecast Model Run.*",
+    ".*Constant Forecast Offset.*",
+    ".*Constant Forecast Date.*",
 ]
 ```
 
@@ -162,13 +162,9 @@ You can pass an auth parameter as needed. It needs to be a [requests compatible 
 
 ```python
 from thredds_crawler.crawl import Crawl
+
 auth = ("user", "password")
-c = Crawl(
-  "http://tds.maracoos.org/thredds/MODIS.xml",
-  select=[".*-Agg"],
-  skip=Crawl.SKIPS,
-  auth=auth
-)
+c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"], skip=Crawl.SKIPS, auth=auth)
 ```
 
 
@@ -254,15 +250,15 @@ c = Crawl("http://tds.maracoos.org/thredds/MODIS.xml", select=[".*-Agg"])
 urls = [s.get("url") for d in c.datasets for s in d.services if s.get("service").lower() == "opendap"]
 print(urls)
 [
-  "http://tds.maracoos.org/thredds/dodsC/MODIS-Agg.nc",
-  "http://tds.maracoos.org/thredds/dodsC/MODIS-2009-Agg.nc",
-  "http://tds.maracoos.org/thredds/dodsC/MODIS-2010-Agg.nc",
-  "http://tds.maracoos.org/thredds/dodsC/MODIS-2011-Agg.nc",
-  "http://tds.maracoos.org/thredds/dodsC/MODIS-2012-Agg.nc",
-  "http://tds.maracoos.org/thredds/dodsC/MODIS-2013-Agg.nc",
-  "http://tds.maracoos.org/thredds/dodsC/MODIS-One-Agg.nc",
-  "http://tds.maracoos.org/thredds/dodsC/MODIS-Three-Agg.nc",
-  "http://tds.maracoos.org/thredds/dodsC/MODIS-Seven-Agg.nc"
+    "http://tds.maracoos.org/thredds/dodsC/MODIS-Agg.nc",
+    "http://tds.maracoos.org/thredds/dodsC/MODIS-2009-Agg.nc",
+    "http://tds.maracoos.org/thredds/dodsC/MODIS-2010-Agg.nc",
+    "http://tds.maracoos.org/thredds/dodsC/MODIS-2011-Agg.nc",
+    "http://tds.maracoos.org/thredds/dodsC/MODIS-2012-Agg.nc",
+    "http://tds.maracoos.org/thredds/dodsC/MODIS-2013-Agg.nc",
+    "http://tds.maracoos.org/thredds/dodsC/MODIS-One-Agg.nc",
+    "http://tds.maracoos.org/thredds/dodsC/MODIS-Three-Agg.nc",
+    "http://tds.maracoos.org/thredds/dodsC/MODIS-Seven-Agg.nc",
 ]
 ```
 
@@ -273,10 +269,7 @@ This isn"t necessarialy the size on disk, because it does not account for `missi
 ```python
 from thredds_crawler.crawl import Crawl
 
-c = Crawl(
-  "http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html",
-  select=["MB_.*"]
-)
+c = Crawl("http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html", select=["MB_.*"])
 sizes = [d.size for d in c.datasets]
 print(sizes)
 [29247.410283999998, 72166.289680000002]
@@ -316,7 +309,7 @@ import logging
 import logging.handlers
 
 logger = logging.getLogger("thredds_crawler")
-fh = logging.handlers.RotatingFileHandler("/var/log/iso_harvest/iso_harvest.log", maxBytes=1024*1024*10, backupCount=5)
+fh = logging.handlers.RotatingFileHandler("/var/log/iso_harvest/iso_harvest.log", maxBytes=1024 * 1024 * 10, backupCount=5)
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
@@ -330,25 +323,25 @@ logger.setLevel(logging.DEBUG)
 SAVE_DIR = "/srv/http/iso"
 
 THREDDS_SERVERS = {
-    "aoos":      "http://thredds.axiomalaska.com/thredds/catalogs/aoos.html",
-    "cencoos":   "http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html",
-    "maracoos" : "http://tds.maracoos.org/thredds/catalog.html",
-    "glos":      "http://tds.glos.us/thredds/catalog.html"
+    "aoos": "http://thredds.axiomalaska.com/thredds/catalogs/aoos.html",
+    "cencoos": "http://thredds.axiomalaska.com/thredds/catalogs/cencoos.html",
+    "maracoos": "http://tds.maracoos.org/thredds/catalog.html",
+    "glos": "http://tds.glos.us/thredds/catalog.html",
 }
 
 for subfolder, thredds_url in THREDDS_SERVERS.items():
-  logger.info("Crawling %s (%s)" % (subfolder, thredds_url))
-  crawler = Crawl(thredds_url, debug=True)
-  isos = [(d.id, s.get("url")) for d in crawler.datasets for s in d.services if s.get("service").lower() == "iso"]
-  filefolder = os.path.join(SAVE_DIR, subfolder)
-  if not os.path.exists(filefolder):
-    os.makedirs(filefolder)
-  for iso in isos:
-    try:
-      filename = iso[0].replace("/", "_") + ".iso.xml"
-      filepath = os.path.join(filefolder, filename)
-      logger.info("Downloading/Saving %s" % filepath)
-      urllib.urlretrieve(iso[1], filepath)
-    except BaseException:
-      logger.exception("Error!")
+    logger.info("Crawling %s (%s)" % (subfolder, thredds_url))
+    crawler = Crawl(thredds_url, debug=True)
+    isos = [(d.id, s.get("url")) for d in crawler.datasets for s in d.services if s.get("service").lower() == "iso"]
+    filefolder = os.path.join(SAVE_DIR, subfolder)
+    if not os.path.exists(filefolder):
+        os.makedirs(filefolder)
+    for iso in isos:
+        try:
+            filename = iso[0].replace("/", "_") + ".iso.xml"
+            filepath = os.path.join(filefolder, filename)
+            logger.info("Downloading/Saving %s" % filepath)
+            urllib.urlretrieve(iso[1], filepath)
+        except BaseException:
+            logger.exception("Error!")
 ```

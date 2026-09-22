@@ -1,2 +1,0 @@
-netcdf4
-pytest

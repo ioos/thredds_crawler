@@ -3,37 +3,44 @@ name: Full Tests
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [ main ]
+
+# no permissions by default
+permissions: {}
 
 jobs:
   run:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        python-version: [ "3.11", "3.15-dev" ]
+        os: [ ubuntu-latest ]
+        include:
+          - os: windows-latest
+            python-version: "3.15-dev"
+          - os: macos-latest
+            python-version: "3.15-dev"
+          - os: macos-15-intel
+            python-version: "3.15-dev"
       fail-fast: false
-    defaults:
-      run:
-        shell: bash -l {0}
 
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-
-    - name: Setup Micromamba Python ${{ matrix.python-version }}
-      uses: mamba-org/setup-micromamba@b09ef9b599704322748535812ca03efb2625677b  # v2.0.5
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       with:
-        environment-name: TEST
-        init-shell: bash
-        create-args: >-
-          python=${{ matrix.python-version }}
-          --file requirements.txt
-          --file requirements-dev.txt
-          --channel conda-forge
+        # Should be enough for setuptools-scm
+        fetch-depth: 100
+        persist-credentials: false
+
+
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+      with:
+        python-version: "3.x"
 
     - name: Install thredds_crawler
       run: |
-        python -m pip install -e . --no-deps --force-reinstall
+        python -m pip install --group dev
+        python -m pip install -e .
 
     - name: Full Tests
       run: |
