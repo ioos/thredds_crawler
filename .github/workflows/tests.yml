@@ -32,7 +32,7 @@ jobs:
 
     - name: Install thredds_crawler
       run: |
-        python pip install --group dev
+        python -m pip install --group dev
         python -m pip install -e .
 
     - name: Full Tests
