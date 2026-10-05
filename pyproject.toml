@@ -47,30 +47,11 @@ packages = [
   "thredds_crawler",
 ]
 include-package-data = true
-dynamic.dependencies = { file = [
-  "requirements.txt",
-] }
 
 [tool.setuptools_scm]
 tag_regex = "^(?P<prefix>v)?(?P<version>[^\\+]+)(?P<suffix>.*)?$"
 write_to = "thredds_crawler/_version.py"
 write_to_template = "__version__ = '{version}'"
-
-[tool.interrogate]
-fail-under = 85
-ignore-init-method = true
-ignore-init-module = false
-ignore-magic = false
-ignore-semiprivate = false
-ignore-private = false
-ignore-module = false
-exclude = [
-  "docs",
-  "tests",
-]
-color = true
-verbose = 1
-quiet = false
 
 [tool.check-manifest]
 ignore = [
