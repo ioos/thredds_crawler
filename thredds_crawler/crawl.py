@@ -7,10 +7,10 @@ except ImportError:
     from urllib.parse import quote_plus
 import logging
 import multiprocessing as mp
-import os
 import re
 import sys
 from datetime import datetime
+from pathlib import Path
 
 import pytz
 import requests
@@ -37,15 +37,16 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def request_xml(url, auth=None):
+def request_xml(url, auth=None, timeout=100):
     """Returns an etree.XMLRoot object loaded from the url
     :param str url: URL for the resource to load as an XML
     """
     try:
-        r = requests.get(url, auth=auth, verify=False)
+        r = requests.get(url, auth=auth, timeout=timeout)
         return r.text.encode("utf-8")
     except BaseException:
-        logger.error("Skipping %s (error parsing the XML)" % url)
+        msg = f"Skipping {url} (error parsing the XML)"
+        logger.exception(msg)
     return None
 
 
@@ -54,16 +55,16 @@ def make_leaf(url, auth):
 
 
 class Crawl:
-    SKIPS = [
+    SKIPS = (
         ".*files.*",
         ".*Individual Files.*",
         ".*File_Access.*",
         ".*Forecast Model Run.*",
         ".*Constant Forecast Offset.*",
         ".*Constant Forecast Date.*",
-    ]
+    )
 
-    def __init__(
+    def __init__(  # noqa: PLR0917, PLR0913
         self,
         catalog_url,
         select=None,
@@ -107,25 +108,17 @@ class Crawl:
         # Only return datasets with a modified date greater or equal to this
         if after is not None:
             if not isinstance(after, datetime):
-                raise ValueError(
-                    "'after' parameter should be a datetime object",
-                )
-            if after.tzinfo:
-                after = after.astimezone(pytz.utc)
-            else:
-                after = after.replace(tzinfo=pytz.utc)
+                msg = "'after' parameter should be a datetime object"
+                raise ValueError(msg)
+            after = after.astimezone(pytz.utc) if after.tzinfo else after.replace(tzinfo=pytz.utc)
         self.after = after
 
         # Only return datasets with a modified date greater or equal to this
         if before is not None:
             if not isinstance(before, datetime):
-                raise ValueError(
-                    "'before' parameter should be a datetime object",
-                )
-            if before.tzinfo:
-                before = before.astimezone(pytz.utc)
-            else:
-                before = before.replace(tzinfo=pytz.utc)
+                msg = "'before' parameter should be a datetime object"
+                raise ValueError(msg)
+            before = before.astimezone(pytz.utc) if before.tzinfo else before.replace(tzinfo=pytz.utc)
         self.before = before
 
         self.visited = []
@@ -152,35 +145,32 @@ class Crawl:
         :param str url: URL to the catalog
         """
         u = urlparse.urlsplit(url)
-        name, ext = os.path.splitext(u.path)
+        ext = Path(u.path).suffix
         if ext == ".html":
             u = urlparse.urlsplit(url.replace(".html", ".xml"))
-        url = u.geturl()
-        return url
+        return u.geturl()
 
     def _yield_leaves(self, url, tree):
         """Yields a URL corresponding to a leaf dataset for each dataset described by the catalog
         :param str url: URL for the current catalog
         :param lxml.etree.Element tree: Current XML Tree
         """
-        for leaf in tree.findall(".//{%s}dataset[@urlPath]" % INV_NS):
+        for leaf in tree.findall(f".//{{{INV_NS}}}dataset[@urlPath]"):
             # Subset by the skips
             name = leaf.get("name")
-            if any([x.match(name) for x in self.skip]):
-                logger.info(
-                    "Skipping dataset based on 'skips'.  Name: %s" % name,
-                )
+            if any(x.match(name) for x in self.skip):
+                msg = "Skipping dataset based on 'skips'.  Name: {name}"
+                logger.info(msg)
                 continue
 
             # Subset by before and after
-            date_tag = leaf.find('.//{%s}date[@type="modified"]' % INV_NS)
+            date_tag = leaf.find(f'.//{{{INV_NS}}}date[@type="modified"]')
             if date_tag is not None:
                 try:
                     dt = parse(date_tag.text)
                 except ValueError:
-                    logger.error(
-                        "Skipping dataset.Wrong date string %s " % date_tag.text,
-                    )
+                    msg = f"Skipping dataset.Wrong date string {date_tag.text}"
+                    logger.exception(msg)
                     continue
                 else:
                     dt = dt.replace(tzinfo=pytz.utc)
@@ -192,19 +182,18 @@ class Crawl:
             # Subset by the Selects defined
             gid = leaf.get("ID")
             if self.select is not None:
-                if gid is not None and any(
-                    [x.match(gid) for x in self.select],
-                ):
-                    logger.debug("Processing %s" % gid)
-                    yield "%s?dataset=%s" % (url, gid)
+                if gid is not None and any(x.match(gid) for x in self.select):
+                    msg = f"Processing {gid}"
+                    logger.debug(msg)
+                    yield f"{url}?dataset={gid}"
                 else:
-                    logger.info(
-                        "Ignoring dataset based on 'selects'.  ID: %s" % gid,
-                    )
+                    msg = f"Ignoring dataset based on 'selects'.  ID: {gid}"
+                    logger.info(msg)
                     continue
             else:
-                logger.debug("Processing %s" % gid)
-                yield "%s?dataset=%s" % (url, gid)
+                msg = f"Processing {gid}"
+                logger.debug(msg)
+                yield f"{url}?dataset={gid}"
 
     def _compile_references(self, url, tree):
         """Returns a list of catalog reference URLs for the current catalog
@@ -212,16 +201,15 @@ class Crawl:
         :param lxml.etree.Element tree: Current XML Tree
         """
         references = []
-        for ref in tree.findall(".//{%s}catalogRef" % INV_NS):
+        for ref in tree.findall(f".//{{{INV_NS}}}catalogRef"):
             # Check skips
-            title = ref.get("{%s}title" % XLINK_NS)
-            if any([x.match(title) for x in self.skip]):
-                logger.info(
-                    "Skipping catalogRef based on 'skips'.  Title: %s" % title,
-                )
+            title = ref.get(f"{{{XLINK_NS}}}title")
+            if any(x.match(title) for x in self.skip):
+                msg = f"Skipping catalogRef based on 'skips'.  Title: {title}"
+                logger.info(msg)
                 continue
             references.append(
-                construct_url(url, ref.get("{%s}href" % XLINK_NS)),
+                construct_url(url, ref.get(f"{{{XLINK_NS}}}href")),
             )
         return references
 
@@ -232,17 +220,18 @@ class Crawl:
         :param requests.auth.AuthBase auth: requests auth object to use
         """
         if url in self.visited:
-            logger.debug("Skipping %s (already crawled)" % url)
+            msg = f"Skipping {url} (already crawled)"
+            logger.debug(msg)
             return
         self.visited.append(url)
 
-        logger.info("Crawling: %s" % url)
+        msg = f"Crawling: {url}"
+        logger.info(msg)
         url = self._get_catalog_url(url)
 
         # Get an etree object
         xml_content = request_xml(url, auth)
-        for ds in self._build_catalog(url, xml_content):
-            yield ds
+        yield from self._build_catalog(url, xml_content)
 
     def _build_catalog(self, url, xml_content):
         """Recursive function to perform the DFS and yield the leaf datasets
@@ -251,7 +240,7 @@ class Crawl:
         """
         try:
             tree = etree.XML(xml_content)
-        except BaseException:
+        except BaseException:  # noqa: BLE001
             return
 
         # Get a list of URLs
@@ -271,7 +260,7 @@ class Crawl:
 
 
 class LeafDataset:
-    def __init__(self, dataset_url, auth=None):
+    def __init__(self, dataset_url, auth=None, timeout=100):  # noqa: PLR0915, PLR0912, C901
         self.services = []
         self.id = None
         self.name = None
@@ -279,21 +268,22 @@ class LeafDataset:
         self.data_size = None
 
         # Get an etree object
-        r = requests.get(dataset_url, auth=auth, verify=False)
+        r = requests.get(dataset_url, auth=auth, timeout=timeout)
         try:
             tree = etree.XML(r.text.encode("utf-8"))
         except etree.XMLSyntaxError:
-            logger.error("Error processing %s, invalid XML" % dataset_url)
+            msg = f"Error processing {dataset_url}, invalid XML"
+            logger.exception(msg)
         else:
             try:
-                dataset = tree.find("{%s}dataset" % INV_NS)
+                dataset = tree.find(f"{{{INV_NS}}}dataset")
                 self.id = dataset.get("ID")
                 self.name = dataset.get("name")
-                metadata = dataset.find("{%s}metadata" % INV_NS)
+                metadata = dataset.find(f"{{{INV_NS}}}metadata")
                 self.catalog_url = dataset_url.split("?")[0]
 
                 # Data Size - http://www.unidata.ucar.edu/software/thredds/current/tds/catalog/InvCatalogSpec.html#dataSize
-                data_size = dataset.find("{%s}dataSize" % INV_NS)
+                data_size = dataset.find(f"{{{INV_NS}}}dataSize")
                 if data_size is not None:
                     self.data_size = float(data_size.text)
                     data_units = data_size.get("units")
@@ -308,25 +298,24 @@ class LeafDataset:
                         self.data_size /= 1e-6
 
                 # Services
-                service_tag = dataset.find("{%s}serviceName" % INV_NS)
-                if service_tag is None:
-                    if metadata is not None:
-                        service_tag = metadata.find("{%s}serviceName" % INV_NS)
+                service_tag = dataset.find(f"{{{INV_NS}}}serviceName")
+                if service_tag is None and metadata is not None:
+                    service_tag = metadata.find(f"{{{INV_NS}}}serviceName")
 
                 if service_tag is None:
                     # Use services found in the file. FMRC aggs do this.
                     services = tree.findall(
-                        ".//{%s}service[@serviceType='Compound']" % INV_NS,
+                        f".//{{{INV_NS}}}service[@serviceType='Compound']",
                     )
                 else:
                     # Use specific named services
                     services = tree.findall(
-                        ".//{%s}service[@name='%s']" % (INV_NS, service_tag.text),
+                        f".//{{{INV_NS}}}service[@name='{service_tag.text}']",
                     )
 
                 for service in services:
                     if service.get("serviceType") == "Compound":
-                        for s in service.findall("{%s}service" % INV_NS):
+                        for s in service.findall(f"{{{INV_NS}}}service"):
                             url = construct_url(
                                 dataset_url,
                                 s.get("base"),
@@ -335,10 +324,7 @@ class LeafDataset:
                                 url += s.get("suffix")
                             # ISO like services need additional parameters
                             if s.get("name") in ["iso", "ncml", "uddc"]:
-                                url += "?dataset=%s&catalog=%s" % (
-                                    self.id,
-                                    quote_plus(self.catalog_url),
-                                )
+                                url += f"?dataset={self.id}&catalog={quote_plus(self.catalog_url)}"
                             self.services.append(
                                 {
                                     "name": s.get("name"),
@@ -350,10 +336,7 @@ class LeafDataset:
                         url = construct_url(dataset_url, service.get("base")) + dataset.get("urlPath") + service.get("suffix", "")
                         # ISO like services need additional parameters
                         if service.get("name") in ["iso", "ncml", "uddc"]:
-                            url += "?dataset=%s&catalog=%s" % (
-                                self.id,
-                                quote_plus(self.catalog_url),
-                            )
+                            url += f"?dataset={self.id}&catalog={quote_plus(self.catalog_url)}"
                         self.services.append(
                             {
                                 "name": service.get("name"),
@@ -367,8 +350,9 @@ class LeafDataset:
                     self.metadata = etree.tostring(metadata)
                 except TypeError:
                     self.metadata = None
-            except BaseException as e:
-                logger.exception(f"Could not process {dataset_url}. {e}.")
+            except BaseException:
+                msg = f"Could not process {dataset_url}."
+                logger.exception(msg)
 
     @property
     def size(self):
@@ -378,7 +362,7 @@ class LeafDataset:
             dap_endpoint = next(s.get("url") for s in self.services if s.get("service").lower() == "opendap")
             # Get sizes from DDS
             try:
-                import netCDF4
+                import netCDF4  # noqa: PLC0415
 
                 nc = netCDF4.Dataset(dap_endpoint)
                 bites = 0
@@ -387,7 +371,7 @@ class LeafDataset:
                     bites += var.dtype.itemsize * var.size
                 return bites * 1e-6  # Megabytes
             except ImportError:
-                logger.error(
+                logger.exception(
                     "The python-netcdf4 library is required for computing the size of this dataset.",
                 )
                 return None
@@ -395,8 +379,4 @@ class LeafDataset:
             return None  # We can't calculate
 
     def __repr__(self):
-        return "<LeafDataset id: %s, name: %s, services: %s>" % (
-            self.id,
-            self.name,
-            str([s.get("service") for s in self.services]),
-        )
+        return "<LeafDataset id: {self.id}, name: {self.name}, services: {[s.get('service') for s in self.services]}>"
