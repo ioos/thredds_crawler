@@ -8,6 +8,8 @@ lint.ignore = [
   "ANN201",  # Missing return type annotation for public function
   "ANN202",  # Missing return type annotation for private function
   "ANN204",  # Missing return type annotation for special method
+  "COM812",  # missing-trailing-comma
+  "CPY001",  # Missing copyright notice at top of file
   "D100",  # Missing docstring in public module
   "D101",  # Missing docstring in public class
   "D102",  # Missing docstring in public method
@@ -18,18 +20,18 @@ lint.ignore = [
   "D203",  # 1 blank line required before class docstring
   "D205",  # 1 blank line required between summary line and description
   "D213",  # incompatible. Ignoring `multi-line-summary-second-line`
-  "TRY003",  # Avoid specifying long messages outside the exception class
   "D400",  # First line should end with a period
   "D401",  # First line of docstring should be in imperative mood
   "D415",  # First line should end with a period, question mark, or exclamation point
   "ERA001",  # Found commented-out code
+  "TRY003",  # Avoid specifying long messages outside the exception class
 ]
 
 [lint.extend-per-file-ignores]
 "test_*.py" = [
-    "INP001",  # File is part of an implicit namespace package
-    "PD901",  # Avoid using the generic variable name `df` for DataFrames
-    "S101",  # Use of assert detected
+  "INP001",  # File is part of an implicit namespace package
+  "PD901",  # Avoid using the generic variable name `df` for DataFrames
+  "S101",  # Use of assert detected
 ]
 
 [lint.pycodestyle]
